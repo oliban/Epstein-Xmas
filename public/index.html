@@ -69,7 +69,18 @@
           </details>
         </div>
 
-        <!-- Step 2: Choose Style -->
+        <!-- Preview (moved here, right after person selection) -->
+        <div class="step" id="result-section" hidden>
+          <h2>Document Preview</h2>
+
+          <div class="card-result">
+            <div class="card-preview" id="card-preview">
+              <canvas id="card-canvas" width="800" height="600"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Choose Style (moved below preview) -->
         <div class="step" id="step-2">
           <h2><span class="step-number">2</span> Select Card Style</h2>
 
@@ -102,42 +113,28 @@
           </div>
         </div>
 
-        <!-- Step 3: Generate -->
+        <!-- Step 3: Finalize -->
         <div class="step" id="step-3">
-          <h2><span class="step-number">3</span> Generate Your Card</h2>
-
           <div class="selection-summary" id="selection-summary">
-            <p>Select a person and style to continue</p>
+            <p>Select people and style to see preview</p>
           </div>
 
-          <button class="generate-btn" id="generate-btn" disabled>
-            <span class="btn-text">Generate Christmas Card</span>
-            <span class="btn-loading" hidden>
-              <span class="spinner"></span> Generating...
-            </span>
-          </button>
-        </div>
+          <div class="card-greeting">
+            <label for="greeting-input">Add a personal greeting:</label>
+            <textarea id="greeting-input" placeholder="Merry Christmas and Happy New Year!"></textarea>
+            <button class="update-greeting-btn" id="update-greeting">Update Greeting</button>
+          </div>
 
-        <!-- Result -->
-        <div class="step" id="result-section" hidden>
-          <h2>Your Christmas Card</h2>
-
-          <div class="card-result">
-            <div class="card-preview" id="card-preview">
-              <canvas id="card-canvas" width="800" height="600"></canvas>
-            </div>
-
-            <div class="card-greeting">
-              <label for="greeting-input">Add a personal greeting:</label>
-              <textarea id="greeting-input" placeholder="Merry Christmas and Happy New Year!"></textarea>
-              <button class="update-greeting-btn" id="update-greeting">Update Greeting</button>
-            </div>
-
-            <div class="card-actions">
-              <button class="action-btn" id="save-card">Save to Gallery</button>
-              <button class="action-btn" id="download-card">Download</button>
-              <button class="action-btn secondary" id="new-card">Create New Card</button>
-            </div>
+          <div class="card-actions">
+            <button class="generate-btn" id="generate-btn" disabled>
+              <span class="btn-text">Get Different Page</span>
+              <span class="btn-loading" hidden>
+                <span class="spinner"></span> Loading...
+              </span>
+            </button>
+            <button class="action-btn" id="save-card">Save to Gallery</button>
+            <button class="action-btn" id="download-card">Download</button>
+            <button class="action-btn secondary" id="new-card">Create New Card</button>
           </div>
 
           <div class="ai-response" id="ai-response" hidden>
