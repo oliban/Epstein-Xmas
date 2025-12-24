@@ -1,0 +1,133 @@
+{
+  "persons": [
+    {
+      "id": "jeffrey-epstein",
+      "name": "Jeffrey Epstein",
+      "category": "Primary",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Jeffrey_Epstein_mugshot.jpg/220px-Jeffrey_Epstein_mugshot.jpg"
+    },
+    {
+      "id": "ghislaine-maxwell",
+      "name": "Ghislaine Maxwell",
+      "category": "Primary",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Ghislaine_Maxwell_%28cropped%29.jpg/220px-Ghislaine_Maxwell_%28cropped%29.jpg"
+    },
+    {
+      "id": "bill-clinton",
+      "name": "Bill Clinton",
+      "category": "Political",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Bill_Clinton.jpg/220px-Bill_Clinton.jpg"
+    },
+    {
+      "id": "donald-trump",
+      "name": "Donald Trump",
+      "category": "Political",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Donald_Trump_official_portrait.jpg/220px-Donald_Trump_official_portrait.jpg"
+    },
+    {
+      "id": "prince-andrew",
+      "name": "Prince Andrew",
+      "category": "Royalty",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Prince_Andrew_August_2014_%28cropped%29.jpg/220px-Prince_Andrew_August_2014_%28cropped%29.jpg"
+    },
+    {
+      "id": "richard-branson",
+      "name": "Richard Branson",
+      "category": "Business",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Richard_Branson_March_2015_%28cropped%29.jpg/220px-Richard_Branson_March_2015_%28cropped%29.jpg"
+    },
+    {
+      "id": "les-wexner",
+      "name": "Les Wexner",
+      "category": "Business",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Les_Wexner.jpg/220px-Les_Wexner.jpg"
+    },
+    {
+      "id": "alan-dershowitz",
+      "name": "Alan Dershowitz",
+      "category": "Legal",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Alan_Dershowitz_2011.jpg/220px-Alan_Dershowitz_2011.jpg"
+    },
+    {
+      "id": "chris-tucker",
+      "name": "Chris Tucker",
+      "category": "Entertainment",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Chris_Tucker_2019_by_Glenn_Francis.jpg/220px-Chris_Tucker_2019_by_Glenn_Francis.jpg"
+    },
+    {
+      "id": "kevin-spacey",
+      "name": "Kevin Spacey",
+      "category": "Entertainment",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Kevin_Spacey%2C_May_2013.jpg/220px-Kevin_Spacey%2C_May_2013.jpg"
+    },
+    {
+      "id": "naomi-campbell",
+      "name": "Naomi Campbell",
+      "category": "Entertainment",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Naomi_Campbell_Cannes_2017.jpg/220px-Naomi_Campbell_Cannes_2017.jpg"
+    },
+    {
+      "id": "stephen-hawking",
+      "name": "Stephen Hawking",
+      "category": "Science",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Stephen_Hawking.StarChild.jpg/220px-Stephen_Hawking.StarChild.jpg"
+    },
+    {
+      "id": "elon-musk",
+      "name": "Elon Musk",
+      "category": "Business",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Elon_Musk_Royal_Society_%28crop2%29.jpg/220px-Elon_Musk_Royal_Society_%28crop2%29.jpg"
+    },
+    {
+      "id": "bill-gates",
+      "name": "Bill Gates",
+      "category": "Business",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Bill_Gates_2017_%28cropped%29.jpg/220px-Bill_Gates_2017_%28cropped%29.jpg"
+    },
+    {
+      "id": "woody-allen",
+      "name": "Woody Allen",
+      "category": "Entertainment",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Woody_Allen_Cannes_2016.jpg/220px-Woody_Allen_Cannes_2016.jpg"
+    },
+    {
+      "id": "michael-jackson",
+      "name": "Michael Jackson",
+      "category": "Entertainment",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Michael_Jackson_in_1988.jpg/220px-Michael_Jackson_in_1988.jpg"
+    },
+    {
+      "id": "jean-luc-brunel",
+      "name": "Jean-Luc Brunel",
+      "category": "Primary",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Jean-Luc_Brunel.jpg/220px-Jean-Luc_Brunel.jpg"
+    },
+    {
+      "id": "sarah-kellen",
+      "name": "Sarah Kellen",
+      "category": "Primary",
+      "image": null
+    },
+    {
+      "id": "ehud-barak",
+      "name": "Ehud Barak",
+      "category": "Political",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Ehud_Barak_2018.jpg/220px-Ehud_Barak_2018.jpg"
+    },
+    {
+      "id": "larry-summers",
+      "name": "Larry Summers",
+      "category": "Political",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Lawrence_Summers_2012.jpg/220px-Lawrence_Summers_2012.jpg"
+    }
+  ],
+  "categories": [
+    "Primary",
+    "Political",
+    "Royalty",
+    "Business",
+    "Entertainment",
+    "Legal",
+    "Science"
+  ]
+}

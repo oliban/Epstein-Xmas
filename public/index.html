@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Christmas Card Generator</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="snow-container" id="snow"></div>
+
+  <header>
+    <h1>Christmas Card Generator</h1>
+    <p class="subtitle">Create festive holiday cards powered by AI</p>
+    <nav>
+      <button class="nav-btn active" data-view="generator">Create Card</button>
+      <button class="nav-btn" data-view="gallery">Gallery</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Generator View -->
+    <section id="generator-view" class="view active">
+      <div class="generator-container">
+        <!-- Step 1: Select Person -->
+        <div class="step" id="step-1">
+          <h2><span class="step-number">1</span> Choose a Person</h2>
+
+          <div class="filter-bar">
+            <input type="text" id="person-search" placeholder="Search persons...">
+            <select id="category-filter">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+
+          <div class="persons-grid" id="persons-grid">
+            <!-- Persons will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Step 2: Choose Style -->
+        <div class="step" id="step-2">
+          <h2><span class="step-number">2</span> Select Card Style</h2>
+
+          <div class="styles-grid">
+            <div class="style-card" data-style="traditional">
+              <div class="style-icon">🎄</div>
+              <h3>Traditional</h3>
+              <p>Classic Christmas with snow, holly, and warm fireplace</p>
+            </div>
+            <div class="style-card" data-style="modern">
+              <div class="style-icon">❄️</div>
+              <h3>Modern</h3>
+              <p>Minimalist design with clean lines and cool tones</p>
+            </div>
+            <div class="style-card" data-style="funny">
+              <div class="style-icon">🤣</div>
+              <h3>Funny</h3>
+              <p>Humorous scenes with comedic holiday elements</p>
+            </div>
+            <div class="style-card" data-style="elegant">
+              <div class="style-icon">✨</div>
+              <h3>Elegant</h3>
+              <p>Sophisticated Victorian-style Christmas</p>
+            </div>
+            <div class="style-card" data-style="tropical">
+              <div class="style-icon">🌴</div>
+              <h3>Tropical</h3>
+              <p>Beach Christmas with palm trees and sun</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Generate -->
+        <div class="step" id="step-3">
+          <h2><span class="step-number">3</span> Generate Your Card</h2>
+
+          <div class="selection-summary" id="selection-summary">
+            <p>Select a person and style to continue</p>
+          </div>
+
+          <button class="generate-btn" id="generate-btn" disabled>
+            <span class="btn-text">Generate Christmas Card</span>
+            <span class="btn-loading" hidden>
+              <span class="spinner"></span> Generating...
+            </span>
+          </button>
+        </div>
+
+        <!-- Result -->
+        <div class="step" id="result-section" hidden>
+          <h2>Your Christmas Card</h2>
+
+          <div class="card-result">
+            <div class="card-preview" id="card-preview">
+              <canvas id="card-canvas" width="800" height="600"></canvas>
+            </div>
+
+            <div class="card-greeting">
+              <label for="greeting-input">Add a personal greeting:</label>
+              <textarea id="greeting-input" placeholder="Merry Christmas and Happy New Year!"></textarea>
+              <button class="update-greeting-btn" id="update-greeting">Update Greeting</button>
+            </div>
+
+            <div class="card-actions">
+              <button class="action-btn" id="save-card">Save to Gallery</button>
+              <button class="action-btn" id="download-card">Download</button>
+              <button class="action-btn secondary" id="new-card">Create New Card</button>
+            </div>
+          </div>
+
+          <div class="ai-response" id="ai-response" hidden>
+            <h3>AI Generated Message</h3>
+            <p id="ai-message"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery View -->
+    <section id="gallery-view" class="view">
+      <div class="gallery-container">
+        <h2>Saved Cards Gallery</h2>
+        <div class="gallery-grid" id="gallery-grid">
+          <!-- Saved cards will be loaded here -->
+        </div>
+        <p class="empty-gallery" id="empty-gallery" hidden>No cards saved yet. Create your first card!</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal for viewing cards -->
+  <div class="modal" id="card-modal" hidden>
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <img id="modal-image" src="" alt="Christmas Card">
+      <div class="modal-info">
+        <h3 id="modal-person"></h3>
+        <p id="modal-greeting"></p>
+        <p class="modal-date" id="modal-date"></p>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" id="modal-download">Download</button>
+        <button class="action-btn danger" id="modal-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Powered by Google Nano Banana AI</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
