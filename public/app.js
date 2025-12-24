@@ -354,6 +354,7 @@ class ChristmasCardGenerator {
       this.renderSelectedChips();
       this.renderQuickLinks();
       this.renderPersons();
+      this.fetchAndPreview(); // Fetch image and show preview
     }
   }
 
@@ -369,6 +370,8 @@ class ChristmasCardGenerator {
     if (input.value) {
       this.handleAutocomplete(input.value);
     }
+
+    this.fetchAndPreview(); // Update preview
   }
 
   // Clear all selected persons
@@ -377,6 +380,8 @@ class ChristmasCardGenerator {
     this.renderSelectedChips();
     this.renderQuickLinks();
     this.renderPersons();
+    this.currentDocumentImage = null;
+    document.getElementById('result-section').hidden = true;
   }
 
   // Switch between views
@@ -416,6 +421,7 @@ class ChristmasCardGenerator {
       card.classList.toggle('selected', card.dataset.style === style);
     });
     this.updateSummary();
+    this.updatePreview(); // Update preview with new style
   }
 
   // Update selection summary
@@ -450,7 +456,85 @@ class ChristmasCardGenerator {
     }
   }
 
-  // Generate Christmas card
+  // Fetch image and show preview immediately
+  async fetchAndPreview() {
+    if (this.selectedPersons.length === 0) {
+      this.currentDocumentImage = null;
+      document.getElementById('result-section').hidden = true;
+      return;
+    }
+
+    if (!this.selectedStyle) {
+      // If no style selected yet, just fetch the image but don't show preview
+      await this.fetchDocumentImage();
+      return;
+    }
+
+    // Fetch image and show preview
+    try {
+      await this.fetchDocumentImage();
+      await this.updatePreview();
+    } catch (error) {
+      console.error('Preview error:', error);
+      alert(error.message || 'Failed to load document image');
+    }
+  }
+
+  // Update preview with current image and style (no re-fetch)
+  async updatePreview() {
+    if (!this.currentDocumentImage || !this.selectedStyle) {
+      return;
+    }
+
+    // Generate AI greeting
+    let aiGreeting = await this.generateAIGreeting();
+
+    // Draw the card
+    await this.drawCard(aiGreeting);
+
+    // Show result section
+    document.getElementById('result-section').hidden = false;
+    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+
+    // Show AI response
+    if (aiGreeting) {
+      document.getElementById('ai-message').textContent = aiGreeting;
+      document.getElementById('ai-response').hidden = false;
+    }
+  }
+
+  // Fetch document image (separated from card generation)
+  async fetchDocumentImage() {
+    const personIdsList = this.selectedPersons.map(p => p.id);
+
+    const pageResponse = await fetch('/api/find-page-with-persons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personIds: personIdsList })
+    });
+
+    const pageData = await pageResponse.json();
+
+    // Validate response - NO FALLBACKS
+    if (!pageData.imageUrl || pageData.matchCount === 0) {
+      throw new Error('No document pages found for the selected persons');
+    }
+
+    // Fetch the actual image - throws error if fails
+    const imgResponse = await fetch(pageData.imageUrl);
+    if (!imgResponse.ok) {
+      throw new Error(`Failed to load document image (HTTP ${imgResponse.status})`);
+    }
+
+    const blob = await imgResponse.blob();
+    this.currentDocumentImage = await this.createImageFromBlob(blob);
+
+    // Log match info
+    console.log(`Found ${pageData.matchCount}/${pageData.totalRequested} persons on page`);
+    console.log(`Matched persons: ${pageData.matchedPersons.join(', ')}`);
+  }
+
+  // Generate Christmas card (fetch new random page)
   async generateCard() {
     const btn = document.getElementById('generate-btn');
     const btnText = btn.querySelector('.btn-text');
@@ -478,49 +562,9 @@ class ChristmasCardGenerator {
       const data = await response.json();
       this.currentCard = data.card;
 
-      // Fetch document image for selected persons
-      const personIdsList = this.selectedPersons.map(p => p.id);
-      const pageResponse = await fetch('/api/find-page-with-persons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personIds: personIdsList })
-      });
-
-      const pageData = await pageResponse.json();
-
-      // Validate response - NO FALLBACKS
-      if (!pageData.imageUrl || pageData.matchCount === 0) {
-        throw new Error('No document pages found for the selected persons');
-      }
-
-      // Fetch the actual image - throws error if fails
-      const imgResponse = await fetch(pageData.imageUrl);
-      if (!imgResponse.ok) {
-        throw new Error(`Failed to load document image (HTTP ${imgResponse.status})`);
-      }
-
-      const blob = await imgResponse.blob();
-      this.currentDocumentImage = await this.createImageFromBlob(blob);
-
-      // Log match info
-      console.log(`Found ${pageData.matchCount}/${pageData.totalRequested} persons on page`);
-      console.log(`Matched persons: ${pageData.matchedPersons.join(', ')}`);
-
-      // Generate AI greeting
-      let aiGreeting = await this.generateAIGreeting();
-
-      // Draw the card
-      await this.drawCard(aiGreeting);
-
-      // Show result section
-      document.getElementById('result-section').hidden = false;
-      document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
-
-      // Show AI response
-      if (aiGreeting) {
-        document.getElementById('ai-message').textContent = aiGreeting;
-        document.getElementById('ai-response').hidden = false;
-      }
+      // Fetch new random document image and update preview
+      await this.fetchDocumentImage();
+      await this.updatePreview();
 
     } catch (error) {
       console.error('Generation error:', error);
