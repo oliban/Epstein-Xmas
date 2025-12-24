@@ -158,6 +158,229 @@ main {
   font-weight: bold;
 }
 
+/* Selected Persons */
+.selected-persons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  min-height: 44px;
+  padding: 0.5rem;
+  background: #f0f8f0;
+  border-radius: 10px;
+}
+
+.selected-label {
+  font-weight: 600;
+  color: var(--christmas-green);
+  margin-right: 0.5rem;
+}
+
+.selected-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--christmas-green);
+  color: white;
+  padding: 0.4rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  animation: chipIn 0.2s ease;
+}
+
+@keyframes chipIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.person-chip .remove-chip {
+  background: rgba(255,255,255,0.3);
+  border: none;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.person-chip .remove-chip:hover {
+  background: rgba(255,255,255,0.5);
+}
+
+.clear-all-btn {
+  background: var(--christmas-red);
+  color: white;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.clear-all-btn:hover {
+  background: #a01830;
+}
+
+/* Quick Links */
+.quick-links {
+  margin-bottom: 1rem;
+}
+
+.quick-links-label {
+  font-weight: 600;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  margin-right: 0.75rem;
+}
+
+.quick-links-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.quick-link-btn {
+  background: #fff;
+  border: 2px solid var(--christmas-green);
+  color: var(--christmas-green);
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-link-btn:hover {
+  background: var(--christmas-green);
+  color: white;
+}
+
+.quick-link-btn.selected {
+  background: var(--christmas-green);
+  color: white;
+}
+
+.quick-link-btn.selected:hover {
+  background: var(--christmas-dark-green);
+}
+
+/* Autocomplete */
+.autocomplete-container {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+#person-autocomplete {
+  width: 100%;
+  padding: 0.9rem 1.25rem;
+  border: 2px solid #ddd;
+  border-radius: 25px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+#person-autocomplete:focus {
+  outline: none;
+  border-color: var(--christmas-green);
+  box-shadow: 0 0 0 3px rgba(22, 91, 51, 0.1);
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid var(--christmas-green);
+  border-top: none;
+  border-radius: 0 0 15px 15px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+}
+
+.autocomplete-item {
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+  background: #f0f8f0;
+}
+
+.autocomplete-item.selected {
+  background: #e8f5e9;
+}
+
+.autocomplete-item .name {
+  font-weight: 500;
+}
+
+.autocomplete-item .category {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  background: #eee;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+}
+
+.autocomplete-item .checkmark {
+  color: var(--christmas-green);
+  font-weight: bold;
+}
+
+.no-results {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-light);
+}
+
+/* Browse All */
+.browse-all {
+  margin-top: 1rem;
+}
+
+.browse-all summary {
+  cursor: pointer;
+  color: var(--christmas-green);
+  font-weight: 600;
+  padding: 0.75rem;
+  background: #f8f8f8;
+  border-radius: 10px;
+  user-select: none;
+}
+
+.browse-all summary:hover {
+  background: #f0f0f0;
+}
+
+.browse-all[open] summary {
+  margin-bottom: 1rem;
+  border-radius: 10px 10px 0 0;
+}
+
 /* Filter Bar */
 .filter-bar {
   display: flex;

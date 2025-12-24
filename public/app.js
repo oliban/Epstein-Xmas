@@ -2,10 +2,18 @@
 class ChristmasCardGenerator {
   constructor() {
     this.persons = [];
-    this.selectedPerson = null;
+    this.selectedPersons = []; // Changed to array for multiple selection
     this.selectedStyle = null;
     this.currentCard = null;
     this.aiSession = null;
+    this.highlightedIndex = -1;
+
+    // Notable persons for quick links
+    this.quickLinkIds = [
+      'jeffrey-epstein', 'ghislaine-maxwell', 'bill-clinton', 'donald-trump',
+      'prince-andrew-duke-of-york', 'richard-branson', 'les-wexner', 'chris-tucker',
+      'david-copperfield', 'kevin-spacey', 'mick-jagger', 'naomi-campbell'
+    ];
 
     this.init();
   }
@@ -38,7 +46,6 @@ class ChristmasCardGenerator {
   // Initialize AI (Google Nano Banana / Chrome Built-in AI)
   async initAI() {
     try {
-      // Check for Chrome's built-in AI (Prompt API)
       if ('ai' in window && 'languageModel' in window.ai) {
         const capabilities = await window.ai.languageModel.capabilities();
         if (capabilities.available === 'readily' || capabilities.available === 'after-download') {
@@ -65,10 +72,53 @@ class ChristmasCardGenerator {
       const data = await response.json();
       this.persons = data.persons;
       this.renderPersons();
+      this.renderQuickLinks();
       this.populateCategoryFilter(data.categories);
+      this.renderSelectedChips();
     } catch (error) {
       console.error('Failed to load persons:', error);
     }
+  }
+
+  // Render quick links
+  renderQuickLinks() {
+    const container = document.getElementById('quick-links');
+    const quickPersons = this.persons.filter(p =>
+      this.quickLinkIds.includes(p.id) || p.category !== 'Other'
+    ).slice(0, 15);
+
+    container.innerHTML = quickPersons.map(person => `
+      <button class="quick-link-btn ${this.isSelected(person.id) ? 'selected' : ''}"
+              data-id="${person.id}">
+        ${person.name}
+      </button>
+    `).join('');
+  }
+
+  // Check if person is selected
+  isSelected(id) {
+    return this.selectedPersons.some(p => p.id === id);
+  }
+
+  // Render selected persons as chips
+  renderSelectedChips() {
+    const container = document.getElementById('selected-chips');
+    const clearBtn = document.getElementById('clear-all');
+
+    if (this.selectedPersons.length === 0) {
+      container.innerHTML = '<span style="color: #999; font-style: italic;">None selected</span>';
+      clearBtn.hidden = true;
+    } else {
+      container.innerHTML = this.selectedPersons.map(person => `
+        <span class="person-chip" data-id="${person.id}">
+          ${person.name}
+          <button class="remove-chip" data-id="${person.id}">&times;</button>
+        </span>
+      `).join('');
+      clearBtn.hidden = false;
+    }
+
+    this.updateSummary();
   }
 
   // Populate category filter dropdown
@@ -88,7 +138,7 @@ class ChristmasCardGenerator {
     const personsToRender = filteredPersons || this.persons;
 
     grid.innerHTML = personsToRender.map(person => `
-      <div class="person-card ${this.selectedPerson?.id === person.id ? 'selected' : ''}"
+      <div class="person-card ${this.isSelected(person.id) ? 'selected' : ''}"
            data-id="${person.id}">
         ${person.image
           ? `<img class="person-avatar" src="${person.image}" alt="${person.name}" onerror="this.outerHTML='<div class=\\'person-avatar placeholder\\'>${person.name.charAt(0)}</div>'">`
@@ -107,13 +157,70 @@ class ChristmasCardGenerator {
       btn.addEventListener('click', () => this.switchView(btn.dataset.view));
     });
 
-    // Person selection
-    document.getElementById('persons-grid').addEventListener('click', (e) => {
-      const card = e.target.closest('.person-card');
-      if (card) this.selectPerson(card.dataset.id);
+    // Quick links
+    document.getElementById('quick-links').addEventListener('click', (e) => {
+      const btn = e.target.closest('.quick-link-btn');
+      if (btn) this.togglePerson(btn.dataset.id);
     });
 
-    // Person search
+    // Selected chips - remove button
+    document.getElementById('selected-chips').addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('.remove-chip');
+      if (removeBtn) {
+        e.stopPropagation();
+        this.removePerson(removeBtn.dataset.id);
+      }
+    });
+
+    // Clear all button
+    document.getElementById('clear-all').addEventListener('click', () => {
+      this.clearAllPersons();
+    });
+
+    // Autocomplete input
+    const autocompleteInput = document.getElementById('person-autocomplete');
+    const dropdown = document.getElementById('autocomplete-dropdown');
+
+    autocompleteInput.addEventListener('input', (e) => {
+      this.handleAutocomplete(e.target.value);
+    });
+
+    autocompleteInput.addEventListener('focus', () => {
+      if (autocompleteInput.value) {
+        this.handleAutocomplete(autocompleteInput.value);
+      }
+    });
+
+    autocompleteInput.addEventListener('keydown', (e) => {
+      this.handleAutocompleteKeydown(e);
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.autocomplete-container')) {
+        dropdown.hidden = true;
+        this.highlightedIndex = -1;
+      }
+    });
+
+    // Dropdown item click
+    dropdown.addEventListener('click', (e) => {
+      const item = e.target.closest('.autocomplete-item');
+      if (item) {
+        this.togglePerson(item.dataset.id);
+        autocompleteInput.value = '';
+        autocompleteInput.focus();
+        this.handleAutocomplete('');
+      }
+    });
+
+    // Person selection in grid
+    document.getElementById('persons-grid').addEventListener('click', (e) => {
+      const card = e.target.closest('.person-card');
+      if (card) this.togglePerson(card.dataset.id);
+    });
+
+    // Person search (in browse all)
     document.getElementById('person-search').addEventListener('input', (e) => {
       this.filterPersons(e.target.value, document.getElementById('category-filter').value);
     });
@@ -148,6 +255,130 @@ class ChristmasCardGenerator {
     });
   }
 
+  // Handle autocomplete input
+  handleAutocomplete(query) {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+
+    if (!query.trim()) {
+      dropdown.hidden = true;
+      this.highlightedIndex = -1;
+      return;
+    }
+
+    const queryLower = query.toLowerCase();
+    const matches = this.persons.filter(p =>
+      p.name.toLowerCase().includes(queryLower)
+    ).slice(0, 10);
+
+    if (matches.length === 0) {
+      dropdown.innerHTML = '<div class="no-results">No matches found</div>';
+    } else {
+      dropdown.innerHTML = matches.map((person, index) => `
+        <div class="autocomplete-item ${this.isSelected(person.id) ? 'selected' : ''} ${index === this.highlightedIndex ? 'highlighted' : ''}"
+             data-id="${person.id}" data-index="${index}">
+          <span class="name">${this.highlightMatch(person.name, query)}</span>
+          <span class="category">${person.category}</span>
+          ${this.isSelected(person.id) ? '<span class="checkmark">✓</span>' : ''}
+        </div>
+      `).join('');
+    }
+
+    dropdown.hidden = false;
+    this.autocompleteMatches = matches;
+  }
+
+  // Highlight matching text
+  highlightMatch(text, query) {
+    const index = text.toLowerCase().indexOf(query.toLowerCase());
+    if (index === -1) return text;
+    return text.slice(0, index) +
+           '<strong>' + text.slice(index, index + query.length) + '</strong>' +
+           text.slice(index + query.length);
+  }
+
+  // Handle keyboard navigation in autocomplete
+  handleAutocompleteKeydown(e) {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    if (dropdown.hidden || !this.autocompleteMatches) return;
+
+    const matches = this.autocompleteMatches;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        this.highlightedIndex = Math.min(this.highlightedIndex + 1, matches.length - 1);
+        this.updateHighlight();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this.highlightedIndex = Math.max(this.highlightedIndex - 1, 0);
+        this.updateHighlight();
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (this.highlightedIndex >= 0 && matches[this.highlightedIndex]) {
+          this.togglePerson(matches[this.highlightedIndex].id);
+          e.target.value = '';
+          this.handleAutocomplete('');
+        }
+        break;
+      case 'Escape':
+        dropdown.hidden = true;
+        this.highlightedIndex = -1;
+        break;
+    }
+  }
+
+  // Update highlight in dropdown
+  updateHighlight() {
+    const items = document.querySelectorAll('.autocomplete-item');
+    items.forEach((item, index) => {
+      item.classList.toggle('highlighted', index === this.highlightedIndex);
+    });
+
+    // Scroll into view
+    if (this.highlightedIndex >= 0 && items[this.highlightedIndex]) {
+      items[this.highlightedIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  // Toggle person selection
+  togglePerson(id) {
+    const person = this.persons.find(p => p.id === id);
+    if (!person) return;
+
+    if (this.isSelected(id)) {
+      this.removePerson(id);
+    } else {
+      this.selectedPersons.push(person);
+      this.renderSelectedChips();
+      this.renderQuickLinks();
+      this.renderPersons();
+    }
+  }
+
+  // Remove person from selection
+  removePerson(id) {
+    this.selectedPersons = this.selectedPersons.filter(p => p.id !== id);
+    this.renderSelectedChips();
+    this.renderQuickLinks();
+    this.renderPersons();
+
+    // Update autocomplete dropdown if open
+    const input = document.getElementById('person-autocomplete');
+    if (input.value) {
+      this.handleAutocomplete(input.value);
+    }
+  }
+
+  // Clear all selected persons
+  clearAllPersons() {
+    this.selectedPersons = [];
+    this.renderSelectedChips();
+    this.renderQuickLinks();
+    this.renderPersons();
+  }
+
   // Switch between views
   switchView(view) {
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -178,13 +409,6 @@ class ChristmasCardGenerator {
     this.renderPersons(filtered);
   }
 
-  // Select a person
-  selectPerson(id) {
-    this.selectedPerson = this.persons.find(p => p.id === id);
-    this.renderPersons();
-    this.updateSummary();
-  }
-
   // Select a style
   selectStyle(style) {
     this.selectedStyle = style;
@@ -199,17 +423,30 @@ class ChristmasCardGenerator {
     const summary = document.getElementById('selection-summary');
     const generateBtn = document.getElementById('generate-btn');
 
-    if (this.selectedPerson && this.selectedStyle) {
-      summary.innerHTML = `<p><strong>Person:</strong> ${this.selectedPerson.name} | <strong>Style:</strong> ${this.selectedStyle}</p>`;
+    if (this.selectedPersons.length > 0 && this.selectedStyle) {
+      const names = this.selectedPersons.map(p => p.name).join(', ');
+      summary.innerHTML = `<p><strong>People:</strong> ${names}<br><strong>Style:</strong> ${this.selectedStyle}</p>`;
       summary.classList.add('ready');
       generateBtn.disabled = false;
     } else {
       const missing = [];
-      if (!this.selectedPerson) missing.push('person');
+      if (this.selectedPersons.length === 0) missing.push('person(s)');
       if (!this.selectedStyle) missing.push('style');
-      summary.innerHTML = `<p>Please select a ${missing.join(' and ')}</p>`;
+      summary.innerHTML = `<p>Please select ${missing.join(' and ')}</p>`;
       summary.classList.remove('ready');
       generateBtn.disabled = true;
+    }
+  }
+
+  // Get combined names string
+  getPersonNames() {
+    if (this.selectedPersons.length === 1) {
+      return this.selectedPersons[0].name;
+    } else if (this.selectedPersons.length === 2) {
+      return `${this.selectedPersons[0].name} & ${this.selectedPersons[1].name}`;
+    } else {
+      const allButLast = this.selectedPersons.slice(0, -1).map(p => p.name).join(', ');
+      return `${allButLast} & ${this.selectedPersons[this.selectedPersons.length - 1].name}`;
     }
   }
 
@@ -224,13 +461,16 @@ class ChristmasCardGenerator {
     btn.disabled = true;
 
     try {
+      const personNames = this.getPersonNames();
+      const personIds = this.selectedPersons.map(p => p.id).join(',');
+
       // Get card data from server
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          personId: this.selectedPerson.id,
-          personName: this.selectedPerson.name,
+          personId: personIds,
+          personName: personNames,
           style: this.selectedStyle
         })
       });
@@ -266,12 +506,12 @@ class ChristmasCardGenerator {
 
   // Generate greeting using AI
   async generateAIGreeting() {
-    const prompt = `Write a short, festive Christmas greeting for a card featuring ${this.selectedPerson.name}.
+    const names = this.getPersonNames();
+    const prompt = `Write a short, festive Christmas greeting for a card featuring ${names}.
     Style: ${this.selectedStyle}. Make it fun and personalized to who they are.`;
 
     try {
       if (this.aiSession) {
-        // Use Chrome's built-in AI
         const response = await this.aiSession.prompt(prompt);
         return response;
       }
@@ -281,11 +521,11 @@ class ChristmasCardGenerator {
 
     // Fallback greetings
     const fallbackGreetings = {
-      traditional: `Wishing ${this.selectedPerson.name} a magical Christmas filled with joy and wonder! May your holidays be merry and bright! 🎄`,
-      modern: `Season's greetings from ${this.selectedPerson.name}! Here's to a stylish and sophisticated holiday season! ❄️`,
-      funny: `${this.selectedPerson.name} says: "Who needs a chimney when you've got style!" Have a hilarious holiday! 🤣`,
-      elegant: `With warmest wishes, ${this.selectedPerson.name} extends the most refined holiday greetings to you and yours. ✨`,
-      tropical: `Aloha from ${this.selectedPerson.name}! Wishing you a warm and sunny Christmas wherever you are! 🌴`
+      traditional: `Wishing ${names} a magical Christmas filled with joy and wonder! May your holidays be merry and bright!`,
+      modern: `Season's greetings from ${names}! Here's to a stylish and sophisticated holiday season!`,
+      funny: `${names} says: "Who needs a chimney when you've got style!" Have a hilarious holiday!`,
+      elegant: `With warmest wishes, ${names} extends the most refined holiday greetings to you and yours.`,
+      tropical: `Aloha from ${names}! Wishing you a warm and sunny Christmas wherever you are!`
     };
 
     return fallbackGreetings[this.selectedStyle] || fallbackGreetings.traditional;
@@ -296,11 +536,9 @@ class ChristmasCardGenerator {
     const canvas = document.getElementById('card-canvas');
     const ctx = canvas.getContext('2d');
 
-    // Card dimensions
     canvas.width = 800;
     canvas.height = 600;
 
-    // Background based on style
     const backgrounds = {
       traditional: { gradient: ['#1a472a', '#2d5a3a'], accent: '#c41e3a' },
       modern: { gradient: ['#1a1a2e', '#16213e'], accent: '#e8e8e8' },
@@ -318,25 +556,26 @@ class ChristmasCardGenerator {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw decorative elements based on style
+    // Draw decorative elements
     this.drawDecorations(ctx, this.selectedStyle, style.accent);
 
-    // Draw "Merry Christmas" header
+    // Draw header
     ctx.fillStyle = style.accent;
     ctx.font = 'bold 48px "Mountains of Christmas", cursive, serif';
     ctx.textAlign = 'center';
     ctx.fillText('Merry Christmas!', canvas.width / 2, 80);
 
-    // Draw person's name
+    // Draw person names
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px "Inter", sans-serif';
-    ctx.fillText(`From: ${this.selectedPerson.name}`, canvas.width / 2, 140);
+    const names = this.getPersonNames();
+    const fontSize = names.length > 40 ? 28 : 36;
+    ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+    this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 140, canvas.width - 80, fontSize + 8);
 
-    // Draw greeting text (wrapped)
+    // Draw greeting text
     ctx.font = '22px "Inter", sans-serif';
     this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 100, 30);
 
-    // Store greeting for saving
     document.getElementById('greeting-input').value = greeting;
   }
 
@@ -347,19 +586,14 @@ class ChristmasCardGenerator {
 
     switch (style) {
       case 'traditional':
-        // Draw Christmas trees
         this.drawTree(ctx, 80, 350, 60);
         this.drawTree(ctx, 720, 350, 60);
-        // Draw snowflakes
         for (let i = 0; i < 30; i++) {
           this.drawSnowflake(ctx, Math.random() * 800, Math.random() * 400 + 50, Math.random() * 10 + 5);
         }
-        // Draw ornaments
         this.drawOrnaments(ctx);
         break;
-
       case 'modern':
-        // Geometric shapes
         for (let i = 0; i < 15; i++) {
           ctx.save();
           ctx.globalAlpha = 0.3;
@@ -369,9 +603,7 @@ class ChristmasCardGenerator {
           ctx.restore();
         }
         break;
-
       case 'funny':
-        // Silly elements
         ctx.font = '60px serif';
         ctx.fillText('🎅', 100, 300);
         ctx.fillText('🦌', 700, 300);
@@ -380,21 +612,16 @@ class ChristmasCardGenerator {
         ctx.fillText('🎄', 200, 400);
         ctx.fillText('⛄', 600, 400);
         break;
-
       case 'elegant':
-        // Ornate borders
         ctx.lineWidth = 3;
         ctx.strokeRect(30, 30, 740, 540);
         ctx.strokeRect(40, 40, 720, 520);
-        // Corner decorations
         this.drawCornerDecoration(ctx, 50, 50);
         this.drawCornerDecoration(ctx, 750, 50, true);
         this.drawCornerDecoration(ctx, 50, 550, false, true);
         this.drawCornerDecoration(ctx, 750, 550, true, true);
         break;
-
       case 'tropical':
-        // Palm trees and sun
         ctx.font = '80px serif';
         ctx.fillText('🌴', 50, 380);
         ctx.fillText('🌴', 700, 380);
@@ -463,10 +690,9 @@ class ChristmasCardGenerator {
   wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     const words = text.split(' ');
     let line = '';
-    let testLine = '';
 
     for (let i = 0; i < words.length; i++) {
-      testLine = line + words[i] + ' ';
+      const testLine = line + words[i] + ' ';
       const metrics = ctx.measureText(testLine);
       if (metrics.width > maxWidth && i > 0) {
         ctx.fillText(line.trim(), x, y);
@@ -479,13 +705,11 @@ class ChristmasCardGenerator {
     ctx.fillText(line.trim(), x, y);
   }
 
-  // Update greeting on card
   updateGreeting() {
     const greeting = document.getElementById('greeting-input').value;
     this.drawCard(greeting);
   }
 
-  // Save card to gallery
   async saveCard() {
     const canvas = document.getElementById('card-canvas');
     const imageData = canvas.toDataURL('image/png');
@@ -513,31 +737,32 @@ class ChristmasCardGenerator {
     }
   }
 
-  // Download card
   downloadCard() {
     const canvas = document.getElementById('card-canvas');
     const link = document.createElement('a');
-    link.download = `christmas-card-${this.selectedPerson.name.replace(/\s+/g, '-')}.png`;
+    const names = this.getPersonNames().replace(/[,\s&]+/g, '-');
+    link.download = `christmas-card-${names}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   }
 
-  // Reset generator for new card
   resetGenerator() {
-    this.selectedPerson = null;
+    this.selectedPersons = [];
     this.selectedStyle = null;
     this.currentCard = null;
 
+    this.renderSelectedChips();
+    this.renderQuickLinks();
     this.renderPersons();
     document.querySelectorAll('.style-card').forEach(card => card.classList.remove('selected'));
     this.updateSummary();
     document.getElementById('result-section').hidden = true;
     document.getElementById('ai-response').hidden = true;
+    document.getElementById('person-autocomplete').value = '';
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Load gallery
   async loadGallery() {
     try {
       const response = await fetch('/api/cards');
@@ -563,7 +788,6 @@ class ChristmasCardGenerator {
         </div>
       `).join('');
 
-      // Bind click events
       grid.querySelectorAll('.gallery-card').forEach(card => {
         card.addEventListener('click', () => this.openModal(card.dataset.id, cards));
       });
@@ -573,7 +797,6 @@ class ChristmasCardGenerator {
     }
   }
 
-  // Open modal with card details
   openModal(cardId, cards) {
     const card = cards.find(c => c.id === cardId);
     if (!card) return;
@@ -588,13 +811,11 @@ class ChristmasCardGenerator {
     document.getElementById('card-modal').hidden = false;
   }
 
-  // Close modal
   closeModal() {
     document.getElementById('card-modal').hidden = true;
     this.currentModalCard = null;
   }
 
-  // Download card from modal
   downloadModalCard() {
     if (!this.currentModalCard) return;
 
@@ -604,7 +825,6 @@ class ChristmasCardGenerator {
     link.click();
   }
 
-  // Delete card from modal
   async deleteModalCard() {
     if (!this.currentModalCard) return;
 

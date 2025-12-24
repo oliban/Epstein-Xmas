@@ -27,18 +27,46 @@
       <div class="generator-container">
         <!-- Step 1: Select Person -->
         <div class="step" id="step-1">
-          <h2><span class="step-number">1</span> Choose a Person</h2>
+          <h2><span class="step-number">1</span> Choose People</h2>
 
-          <div class="filter-bar">
-            <input type="text" id="person-search" placeholder="Search persons...">
-            <select id="category-filter">
-              <option value="">All Categories</option>
-            </select>
+          <!-- Selected persons chips -->
+          <div class="selected-persons" id="selected-persons">
+            <span class="selected-label">Selected:</span>
+            <div class="selected-chips" id="selected-chips">
+              <!-- Selected person chips appear here -->
+            </div>
+            <button class="clear-all-btn" id="clear-all" hidden>Clear All</button>
           </div>
 
-          <div class="persons-grid" id="persons-grid">
-            <!-- Persons will be loaded here -->
+          <!-- Quick links for notable persons -->
+          <div class="quick-links">
+            <span class="quick-links-label">Quick add:</span>
+            <div class="quick-links-list" id="quick-links">
+              <!-- Quick link buttons loaded dynamically -->
+            </div>
           </div>
+
+          <!-- Autocomplete search -->
+          <div class="autocomplete-container">
+            <input type="text" id="person-autocomplete" placeholder="Type to search and add persons..." autocomplete="off">
+            <div class="autocomplete-dropdown" id="autocomplete-dropdown" hidden>
+              <!-- Autocomplete suggestions appear here -->
+            </div>
+          </div>
+
+          <!-- Browse all persons -->
+          <details class="browse-all">
+            <summary>Browse all persons</summary>
+            <div class="filter-bar">
+              <input type="text" id="person-search" placeholder="Filter persons...">
+              <select id="category-filter">
+                <option value="">All Categories</option>
+              </select>
+            </div>
+            <div class="persons-grid" id="persons-grid">
+              <!-- Persons will be loaded here -->
+            </div>
+          </details>
         </div>
 
         <!-- Step 2: Choose Style -->
