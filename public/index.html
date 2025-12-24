@@ -4,6 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Christmas Card Generator</title>
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://epstein-xmas.fly.dev/">
+  <meta property="og:title" content="Epstein Files Christmas Card Generator">
+  <meta property="og:description" content="Spread holiday cheer with personalized Christmas cards featuring your favorite celebrities from the Epstein files! Nothing says 'Season's Greetings' quite like declassified documents. 🎄">
+  <meta property="og:image" content="https://epstein-xmas.fly.dev/preview.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://epstein-xmas.fly.dev/">
+  <meta property="twitter:title" content="Epstein Files Christmas Card Generator">
+  <meta property="twitter:description" content="Spread holiday cheer with personalized Christmas cards featuring your favorite celebrities from the Epstein files! Nothing says 'Season's Greetings' quite like declassified documents. 🎄">
+  <meta property="twitter:image" content="https://epstein-xmas.fly.dev/preview.jpg">
+
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,6 +40,34 @@
     <!-- Generator View -->
     <section id="generator-view" class="view active">
       <div class="generator-container">
+        <!-- Introduction / Explanation -->
+        <div class="intro-section" id="how-it-works">
+          <h3 class="intro-heading">How it works</h3>
+          <div class="steps-explanation">
+            <div class="explain-step">
+              <span class="explain-number">1</span>
+              <div class="explain-text">
+                <strong>Choose people</strong>
+                <p>Select one or more people from the Epstein files to include in your card</p>
+              </div>
+            </div>
+            <div class="explain-step">
+              <span class="explain-number">2</span>
+              <div class="explain-text">
+                <strong>Search for documents</strong>
+                <p>We'll find document pages featuring your selected people</p>
+              </div>
+            </div>
+            <div class="explain-step">
+              <span class="explain-number">3</span>
+              <div class="explain-text">
+                <strong>Customize your card</strong>
+                <p>Pick a style, add a personal greeting, and save or download your festive creation</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Step 1: Select Person -->
         <div class="step" id="step-1">
           <h2><span class="step-number">1</span> Choose People</h2>
@@ -67,11 +110,23 @@
               <!-- Persons will be loaded here -->
             </div>
           </details>
+
+          <!-- Search button -->
+          <button class="search-btn" id="search-btn" disabled>
+            Search
+          </button>
         </div>
 
         <!-- Preview (moved here, right after person selection) -->
         <div class="step" id="result-section" hidden>
-          <h2>Document Preview</h2>
+          <div class="preview-header">
+            <h2>Document Preview</h2>
+            <div class="page-navigation">
+              <button class="nav-arrow" id="prev-page" hidden>◀</button>
+              <span class="page-counter" id="page-counter" hidden>1 of 10</span>
+              <button class="nav-arrow" id="next-page" hidden>▶</button>
+            </div>
+          </div>
 
           <div class="card-result">
             <div class="card-preview" id="card-preview">
@@ -81,10 +136,20 @@
         </div>
 
         <!-- Step 2: Choose Style (moved below preview) -->
-        <div class="step" id="step-2">
+        <div class="step" id="step-2" hidden>
           <h2><span class="step-number">2</span> Select Card Style</h2>
 
           <div class="styles-grid">
+            <div class="style-card" data-style="none">
+              <div class="style-icon">📄</div>
+              <h3>No Style</h3>
+              <p>Just the document image, no decorations</p>
+            </div>
+            <div class="style-card" data-style="greeting-only">
+              <div class="style-icon">💬</div>
+              <h3>Personal Greeting Only</h3>
+              <p>Document with your greeting, no Christmas decorations</p>
+            </div>
             <div class="style-card" data-style="traditional">
               <div class="style-icon">🎄</div>
               <h3>Traditional</h3>
@@ -113,33 +178,20 @@
           </div>
         </div>
 
-        <!-- Step 3: Finalize -->
-        <div class="step" id="step-3">
-          <div class="selection-summary" id="selection-summary">
-            <p>Select people and style to see preview</p>
-          </div>
-
+        <!-- Personal Greeting -->
+        <div class="step" id="greeting-section" hidden>
+          <h2>Add a Personal Greeting</h2>
           <div class="card-greeting">
-            <label for="greeting-input">Add a personal greeting:</label>
             <textarea id="greeting-input" placeholder="Merry Christmas and Happy New Year!"></textarea>
-            <button class="update-greeting-btn" id="update-greeting">Update Greeting</button>
           </div>
+        </div>
 
+        <!-- Step 3: Finalize -->
+        <div class="step" id="step-3" hidden>
           <div class="card-actions">
-            <button class="generate-btn" id="generate-btn" disabled>
-              <span class="btn-text">Get Different Page</span>
-              <span class="btn-loading" hidden>
-                <span class="spinner"></span> Loading...
-              </span>
-            </button>
             <button class="action-btn" id="save-card">Save to Gallery</button>
             <button class="action-btn" id="download-card">Download</button>
             <button class="action-btn secondary" id="new-card">Create New Card</button>
-          </div>
-
-          <div class="ai-response" id="ai-response" hidden>
-            <h3>AI Generated Message</h3>
-            <p id="ai-message"></p>
           </div>
         </div>
       </div>
@@ -169,13 +221,15 @@
       </div>
       <div class="modal-actions">
         <button class="action-btn" id="modal-download">Download</button>
-        <button class="action-btn danger" id="modal-delete">Delete</button>
       </div>
     </div>
   </div>
 
   <footer>
-    <p>Powered by Google Nano Banana AI</p>
+    <nav class="footer-nav">
+      <a href="#" class="footer-link" data-view="generator">Create Card</a>
+      <a href="#" class="footer-link" data-view="gallery">Gallery</a>
+    </nav>
   </footer>
 
   <script src="app.js"></script>

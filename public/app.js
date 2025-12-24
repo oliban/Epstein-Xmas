@@ -1,3 +1,18 @@
+// UUID generator polyfill for iOS Safari
+function generateUUID() {
+  // Try native crypto.randomUUID first
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  // Fallback for iOS Safari and older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // Christmas Card Generator Application
 class ChristmasCardGenerator {
   constructor() {
@@ -7,6 +22,9 @@ class ChristmasCardGenerator {
     this.currentCard = null;
     this.aiSession = null;
     this.highlightedIndex = -1;
+    this.currentDocumentImage = null;
+    this.matchedPages = []; // All matching pages from search
+    this.currentPageIndex = 0; // Current page being viewed
 
     // Notable persons for quick links
     this.quickLinkIds = [
@@ -23,7 +41,6 @@ class ChristmasCardGenerator {
     await this.loadPersons();
     this.bindEvents();
     this.loadGallery();
-    await this.initAI();
   }
 
   // Create falling snow effect
@@ -40,28 +57,6 @@ class ChristmasCardGenerator {
       snowflake.style.animationDelay = `${Math.random() * 5}s`;
       snowflake.style.fontSize = `${Math.random() * 1.5 + 0.5}em`;
       snowContainer.appendChild(snowflake);
-    }
-  }
-
-  // Initialize AI (Google Nano Banana / Chrome Built-in AI)
-  async initAI() {
-    try {
-      if ('ai' in window && 'languageModel' in window.ai) {
-        const capabilities = await window.ai.languageModel.capabilities();
-        if (capabilities.available === 'readily' || capabilities.available === 'after-download') {
-          this.aiSession = await window.ai.languageModel.create({
-            systemPrompt: `You are a festive Christmas card greeting writer.
-            Create warm, personalized holiday greetings that are cheerful and celebratory.
-            Keep responses concise - 2-3 sentences max.
-            Include festive language and holiday spirit.`
-          });
-          console.log('Google Nano Banana AI initialized successfully!');
-          return;
-        }
-      }
-      console.log('Chrome AI not available, using fallback mode');
-    } catch (error) {
-      console.log('AI initialization error:', error);
     }
   }
 
@@ -83,9 +78,14 @@ class ChristmasCardGenerator {
   // Render quick links
   renderQuickLinks() {
     const container = document.getElementById('quick-links');
+
+    // Show fewer quick links on mobile
+    const isMobile = window.innerWidth <= 768;
+    const maxQuickLinks = isMobile ? 6 : 15;
+
     const quickPersons = this.persons.filter(p =>
       this.quickLinkIds.includes(p.id) || p.category !== 'Other'
-    ).slice(0, 15);
+    ).slice(0, maxQuickLinks);
 
     container.innerHTML = quickPersons.map(person => `
       <button class="quick-link-btn ${this.isSelected(person.id) ? 'selected' : ''}"
@@ -104,11 +104,12 @@ class ChristmasCardGenerator {
   renderSelectedChips() {
     const container = document.getElementById('selected-chips');
     const clearBtn = document.getElementById('clear-all');
+    const selectedPersonsSection = document.getElementById('selected-persons');
 
     if (this.selectedPersons.length === 0) {
-      container.innerHTML = '<span style="color: #999; font-style: italic;">None selected</span>';
-      clearBtn.hidden = true;
+      selectedPersonsSection.hidden = true;
     } else {
+      selectedPersonsSection.hidden = false;
       container.innerHTML = this.selectedPersons.map(person => `
         <span class="person-chip" data-id="${person.id}">
           ${person.name}
@@ -230,28 +231,126 @@ class ChristmasCardGenerator {
       this.filterPersons(document.getElementById('person-search').value, e.target.value);
     });
 
-    // Style selection
+    // Style selection - single handler works for both touch and click
     document.querySelectorAll('.style-card').forEach(card => {
-      card.addEventListener('click', () => this.selectStyle(card.dataset.style));
+      card.addEventListener('click', () => {
+        this.selectStyle(card.dataset.style);
+      });
     });
 
-    // Generate button
-    document.getElementById('generate-btn').addEventListener('click', () => this.generateCard());
+    // How it works - scroll to search
+    document.getElementById('how-it-works').addEventListener('click', () => {
+      document.getElementById('search-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
 
     // Card actions
-    document.getElementById('update-greeting').addEventListener('click', () => this.updateGreeting());
+    // Live update greeting as user types
+    document.getElementById('greeting-input').addEventListener('input', () => {
+      const greeting = document.getElementById('greeting-input').value || 'Merry Christmas and Happy New Year!';
+      if (this.currentDocumentImage && this.selectedStyle) {
+        this.drawCard(greeting);
+      }
+    });
     document.getElementById('save-card').addEventListener('click', () => this.saveCard());
     document.getElementById('download-card').addEventListener('click', () => this.downloadCard());
-    document.getElementById('new-card').addEventListener('click', () => this.resetGenerator());
+    document.getElementById('new-card').addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear this card and start over?')) {
+        this.resetGenerator();
+      }
+    });
+
+    // Footer navigation
+    document.querySelectorAll('.footer-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.switchView(link.dataset.view);
+      });
+    });
+
+    // Sticky card preview on mobile scroll
+    this.setupStickyPreview();
 
     // Modal
     document.getElementById('modal-close').addEventListener('click', () => this.closeModal());
     document.getElementById('modal-download').addEventListener('click', () => this.downloadModalCard());
-    document.getElementById('modal-delete').addEventListener('click', () => this.deleteModalCard());
 
     // Close modal on background click
     document.getElementById('card-modal').addEventListener('click', (e) => {
       if (e.target.id === 'card-modal') this.closeModal();
+    });
+
+    // Search button - execute search and fetch image
+    document.getElementById('search-btn').addEventListener('click', () => {
+      this.fetchAndPreview();
+    });
+
+    // Page navigation buttons
+    document.getElementById('prev-page').addEventListener('click', () => {
+      this.previousPage();
+    });
+    document.getElementById('next-page').addEventListener('click', () => {
+      this.nextPage();
+    });
+
+    // Click on preview canvas to open modal
+    document.getElementById('card-canvas').addEventListener('click', () => {
+      this.openPreviewModal();
+    });
+
+    // Make canvas clickable with pointer cursor
+    document.getElementById('card-canvas').style.cursor = 'pointer';
+
+    // Re-render quick links on window resize (mobile/desktop switch)
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        this.renderQuickLinks();
+      }, 200); // Debounce resize events
+    });
+  }
+
+  // Setup sticky preview on mobile when scrolling past
+  setupStickyPreview() {
+    const preview = document.getElementById('card-preview');
+    if (!preview) return;
+
+    let previewTop = 0;
+    let isSticky = false;
+
+    const updateStickyState = () => {
+      // Only apply on mobile
+      if (window.innerWidth > 768) {
+        preview.classList.remove('sticky-active');
+        return;
+      }
+
+      // Get the preview's original position (when not sticky)
+      if (!isSticky) {
+        const rect = preview.getBoundingClientRect();
+        previewTop = rect.top + window.scrollY;
+      }
+
+      // Check if we've scrolled past the preview
+      const scrollPosition = window.scrollY;
+
+      if (scrollPosition > previewTop - 10 && !isSticky) {
+        preview.classList.add('sticky-active');
+        isSticky = true;
+      } else if (scrollPosition <= previewTop - 10 && isSticky) {
+        preview.classList.remove('sticky-active');
+        isSticky = false;
+      }
+    };
+
+    // Update on scroll
+    window.addEventListener('scroll', updateStickyState);
+
+    // Recalculate on resize
+    window.addEventListener('resize', () => {
+      isSticky = false;
+      preview.classList.remove('sticky-active');
+      setTimeout(updateStickyState, 100);
     });
   }
 
@@ -354,7 +453,7 @@ class ChristmasCardGenerator {
       this.renderSelectedChips();
       this.renderQuickLinks();
       this.renderPersons();
-      this.fetchAndPreview(); // Fetch image and show preview
+      this.updateSearchButton();
     }
   }
 
@@ -371,7 +470,13 @@ class ChristmasCardGenerator {
       this.handleAutocomplete(input.value);
     }
 
-    this.fetchAndPreview(); // Update preview
+    this.updateSearchButton();
+  }
+
+  // Update search button state
+  updateSearchButton() {
+    const searchBtn = document.getElementById('search-btn');
+    searchBtn.disabled = this.selectedPersons.length === 0;
   }
 
   // Clear all selected persons
@@ -382,6 +487,7 @@ class ChristmasCardGenerator {
     this.renderPersons();
     this.currentDocumentImage = null;
     document.getElementById('result-section').hidden = true;
+    this.updateSearchButton();
   }
 
   // Switch between views
@@ -415,32 +521,38 @@ class ChristmasCardGenerator {
   }
 
   // Select a style
-  selectStyle(style) {
+  async selectStyle(style) {
     this.selectedStyle = style;
     document.querySelectorAll('.style-card').forEach(card => {
       card.classList.toggle('selected', card.dataset.style === style);
     });
+
+    // Create card object for saving (needed when using search workflow)
+    if (this.selectedPersons.length > 0) {
+      const personIds = this.selectedPersons.map(p => p.id).join(',');
+      const personNames = this.selectedPersons.map(p => p.name).join(', ');
+
+      this.currentCard = {
+        id: generateUUID(),
+        personId: personIds,
+        personName: personNames,
+        style: style,
+        prompt: `Christmas card for ${personNames} in ${style} style`,
+        createdAt: new Date().toISOString()
+      };
+    }
+
     this.updateSummary();
-    this.updatePreview(); // Update preview with new style
+    await this.updatePreview(); // Update preview with new style
   }
 
-  // Update selection summary
+  // Update button states and visibility
   updateSummary() {
-    const summary = document.getElementById('selection-summary');
-    const generateBtn = document.getElementById('generate-btn');
+    const greetingSection = document.getElementById('greeting-section');
 
-    if (this.selectedPersons.length > 0 && this.selectedStyle) {
-      const names = this.selectedPersons.map(p => p.name).join(', ');
-      summary.innerHTML = `<p><strong>People:</strong> ${names}<br><strong>Style:</strong> ${this.selectedStyle}</p>`;
-      summary.classList.add('ready');
-      generateBtn.disabled = false;
-    } else {
-      const missing = [];
-      if (this.selectedPersons.length === 0) missing.push('person(s)');
-      if (!this.selectedStyle) missing.push('style');
-      summary.innerHTML = `<p>Please select ${missing.join(' and ')}</p>`;
-      summary.classList.remove('ready');
-      generateBtn.disabled = true;
+    // Show greeting section if we have a preview
+    if (this.currentDocumentImage) {
+      greetingSection.hidden = false;
     }
   }
 
@@ -458,25 +570,58 @@ class ChristmasCardGenerator {
 
   // Fetch image and show preview immediately
   async fetchAndPreview() {
+    console.log('=== fetchAndPreview called ===');
+    console.log('Selected persons:', this.selectedPersons.map(p => p.name));
+
     if (this.selectedPersons.length === 0) {
       this.currentDocumentImage = null;
       document.getElementById('result-section').hidden = true;
       return;
     }
 
-    if (!this.selectedStyle) {
-      // If no style selected yet, just fetch the image but don't show preview
-      await this.fetchDocumentImage();
-      return;
-    }
-
-    // Fetch image and show preview
+    // Fetch image and show it (with or without style)
     try {
       await this.fetchDocumentImage();
-      await this.updatePreview();
+
+      // Show the document image
+      await this.showDocumentImage();
+
+      // If style is selected, add decorations
+      if (this.selectedStyle) {
+        await this.updatePreview();
+      }
+
+      console.log('=== fetchAndPreview completed ===');
     } catch (error) {
       console.error('Preview error:', error);
       alert(error.message || 'Failed to load document image');
+    }
+  }
+
+  // Show raw document image without decorations
+  async showDocumentImage() {
+    if (!this.currentDocumentImage) return;
+
+    const canvas = document.getElementById('card-canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 800;
+    canvas.height = 600;
+
+    // Draw just the document image, no decorations
+    this.drawDocumentBackground(ctx, this.currentDocumentImage, canvas.width, canvas.height);
+
+    // Show result section without scrolling (keeps search button visible)
+    document.getElementById('result-section').hidden = false;
+
+    // Reveal Step 2 (styles) and Step 3 (actions) after successful search
+    document.getElementById('step-2').hidden = false;
+    document.getElementById('step-3').hidden = false;
+    document.getElementById('greeting-section').hidden = false;
+
+    // Auto-select "none" style as default if no style selected yet
+    if (!this.selectedStyle) {
+      this.selectStyle('none');
     }
   }
 
@@ -486,20 +631,18 @@ class ChristmasCardGenerator {
       return;
     }
 
-    // Generate AI greeting
-    let aiGreeting = await this.generateAIGreeting();
+    // Get current greeting from textarea, or use default
+    const greeting = document.getElementById('greeting-input').value || 'Merry Christmas and Happy New Year!';
 
     // Draw the card
-    await this.drawCard(aiGreeting);
+    await this.drawCard(greeting);
 
     // Show result section
     document.getElementById('result-section').hidden = false;
-    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
 
-    // Show AI response
-    if (aiGreeting) {
-      document.getElementById('ai-message').textContent = aiGreeting;
-      document.getElementById('ai-response').hidden = false;
+    // Only scroll to preview on desktop (on mobile it's sticky and always visible)
+    if (window.innerWidth > 768) {
+      document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
     }
   }
 
@@ -510,18 +653,61 @@ class ChristmasCardGenerator {
     const pageResponse = await fetch('/api/find-page-with-persons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ personIds: personIdsList })
+      body: JSON.stringify({ personIds: personIdsList }),
+      cache: 'no-cache'
     });
 
+    if (!pageResponse.ok) {
+      throw new Error(`API error: ${pageResponse.status}`);
+    }
+
     const pageData = await pageResponse.json();
+    console.log('Received page data:', pageData);
 
     // Validate response - NO FALLBACKS
-    if (!pageData.imageUrl || pageData.matchCount === 0) {
+    if (!pageData.pages || pageData.pages.length === 0) {
       throw new Error('No document pages found for the selected persons');
     }
 
-    // Fetch the actual image - throws error if fails
-    const imgResponse = await fetch(pageData.imageUrl);
+    // Store all matched pages
+    this.matchedPages = pageData.pages;
+
+    // Start at random page, with fallback if image fails to load
+    this.currentPageIndex = Math.floor(Math.random() * this.matchedPages.length);
+    const startIndex = this.currentPageIndex;
+    let loaded = false;
+    let attempts = 0;
+
+    // Try to load an image, skipping broken ones
+    while (!loaded && attempts < this.matchedPages.length) {
+      try {
+        await this.loadPageAtIndex(this.currentPageIndex);
+        loaded = true;
+      } catch (error) {
+        console.warn(`Failed to load page ${this.currentPageIndex + 1}, trying next...`);
+        this.currentPageIndex = (this.currentPageIndex + 1) % this.matchedPages.length;
+        attempts++;
+
+        if (this.currentPageIndex === startIndex && attempts > 0) {
+          throw new Error('All images failed to load from CDN');
+        }
+      }
+    }
+
+    // Update navigation UI
+    this.updateNavigationUI();
+
+    console.log(`Found ${this.matchedPages.length} matching pages, starting at ${this.currentPageIndex + 1}`);
+  }
+
+  async loadPageAtIndex(index) {
+    const page = this.matchedPages[index];
+    if (!page) return;
+
+    console.log(`Loading page ${index + 1}/${this.matchedPages.length} from ${page.imageUrl}`);
+
+    // Fetch the image
+    const imgResponse = await fetch(page.imageUrl, { cache: 'no-cache' });
     if (!imgResponse.ok) {
       throw new Error(`Failed to load document image (HTTP ${imgResponse.status})`);
     }
@@ -529,79 +715,97 @@ class ChristmasCardGenerator {
     const blob = await imgResponse.blob();
     this.currentDocumentImage = await this.createImageFromBlob(blob);
 
-    // Log match info
-    console.log(`Found ${pageData.matchCount}/${pageData.totalRequested} persons on page`);
-    console.log(`Matched persons: ${pageData.matchedPersons.join(', ')}`);
+    console.log(`Loaded page ${index + 1}/${this.matchedPages.length}: ${page.matchedPersons.join(', ')} (confidence: ${page.confidence.toFixed(1)}%)`);
   }
 
-  // Generate Christmas card (fetch new random page)
-  async generateCard() {
-    const btn = document.getElementById('generate-btn');
-    const btnText = btn.querySelector('.btn-text');
-    const btnLoading = btn.querySelector('.btn-loading');
+  async nextPage() {
+    if (this.matchedPages.length === 0) return;
 
-    btnText.hidden = true;
-    btnLoading.hidden = false;
-    btn.disabled = true;
+    const startIndex = this.currentPageIndex;
+    let attempts = 0;
+    const maxAttempts = this.matchedPages.length;
 
-    try {
-      const personNames = this.getPersonNames();
-      const personIds = this.selectedPersons.map(p => p.id).join(',');
+    while (attempts < maxAttempts) {
+      this.currentPageIndex = (this.currentPageIndex + 1) % this.matchedPages.length;
 
-      // Get card data from server
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          personId: personIds,
-          personName: personNames,
-          style: this.selectedStyle
-        })
-      });
+      try {
+        await this.loadPageAtIndex(this.currentPageIndex);
+        this.updateNavigationUI();
 
-      const data = await response.json();
-      this.currentCard = data.card;
+        // Redraw with current style if selected
+        if (this.selectedStyle) {
+          await this.updatePreview();
+        } else {
+          await this.showDocumentImage();
+        }
+        return; // Success - exit loop
+      } catch (error) {
+        console.warn(`Failed to load page ${this.currentPageIndex + 1}, trying next...`);
+        attempts++;
 
-      // Fetch new random document image and update preview
-      await this.fetchDocumentImage();
-      await this.updatePreview();
-
-    } catch (error) {
-      console.error('Generation error:', error);
-      alert('Failed to generate card. Please try again.');
-    } finally {
-      btnText.hidden = false;
-      btnLoading.hidden = true;
-      btn.disabled = false;
-    }
-  }
-
-  // Generate greeting using AI
-  async generateAIGreeting() {
-    const names = this.getPersonNames();
-    const prompt = `Write a short, festive Christmas greeting for a card featuring ${names}.
-    Style: ${this.selectedStyle}. Make it fun and personalized to who they are.`;
-
-    try {
-      if (this.aiSession) {
-        const response = await this.aiSession.prompt(prompt);
-        return response;
+        // If we've tried all pages, stop
+        if (this.currentPageIndex === startIndex) {
+          console.error('All pages failed to load');
+          alert('Unable to load any images. The CDN may be experiencing issues.');
+          return;
+        }
       }
-    } catch (error) {
-      console.log('AI greeting generation failed:', error);
     }
-
-    // Fallback greetings
-    const fallbackGreetings = {
-      traditional: `Wishing ${names} a magical Christmas filled with joy and wonder! May your holidays be merry and bright!`,
-      modern: `Season's greetings from ${names}! Here's to a stylish and sophisticated holiday season!`,
-      funny: `${names} says: "Who needs a chimney when you've got style!" Have a hilarious holiday!`,
-      elegant: `With warmest wishes, ${names} extends the most refined holiday greetings to you and yours.`,
-      tropical: `Aloha from ${names}! Wishing you a warm and sunny Christmas wherever you are!`
-    };
-
-    return fallbackGreetings[this.selectedStyle] || fallbackGreetings.traditional;
   }
+
+  async previousPage() {
+    if (this.matchedPages.length === 0) return;
+
+    const startIndex = this.currentPageIndex;
+    let attempts = 0;
+    const maxAttempts = this.matchedPages.length;
+
+    while (attempts < maxAttempts) {
+      this.currentPageIndex = (this.currentPageIndex - 1 + this.matchedPages.length) % this.matchedPages.length;
+
+      try {
+        await this.loadPageAtIndex(this.currentPageIndex);
+        this.updateNavigationUI();
+
+        // Redraw with current style if selected
+        if (this.selectedStyle) {
+          await this.updatePreview();
+        } else {
+          await this.showDocumentImage();
+        }
+        return; // Success - exit loop
+      } catch (error) {
+        console.warn(`Failed to load page ${this.currentPageIndex + 1}, trying previous...`);
+        attempts++;
+
+        // If we've tried all pages, stop
+        if (this.currentPageIndex === startIndex) {
+          console.error('All pages failed to load');
+          alert('Unable to load any images. The CDN may be experiencing issues.');
+          return;
+        }
+      }
+    }
+  }
+
+  updateNavigationUI() {
+    const counter = document.getElementById('page-counter');
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+
+    if (this.matchedPages.length > 0) {
+      counter.textContent = `${this.currentPageIndex + 1} of ${this.matchedPages.length}`;
+      counter.hidden = false;
+      prevBtn.hidden = false;
+      nextBtn.hidden = false;
+    } else {
+      counter.hidden = true;
+      prevBtn.hidden = true;
+      nextBtn.hidden = true;
+    }
+  }
+
+  // Removed generateCard() method - Random new image button was removed from UI
 
   // Draw the Christmas card on canvas
   async drawCard(greeting) {
@@ -611,6 +815,36 @@ class ChristmasCardGenerator {
     canvas.width = 800;
     canvas.height = 600;
 
+    // Draw document page as background (must exist - error thrown earlier if not)
+    this.drawDocumentBackground(ctx, this.currentDocumentImage, canvas.width, canvas.height);
+
+    // Handle "none" style - just the document, nothing else
+    if (this.selectedStyle === 'none') {
+      return;
+    }
+
+    // Handle "greeting-only" style - document + greeting text only
+    if (this.selectedStyle === 'greeting-only') {
+      // Light overlay for text readability
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw greeting text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 32px "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      this.wrapText(ctx, greeting, canvas.width / 2, canvas.height / 2, canvas.width - 100, 40);
+      ctx.shadowColor = 'transparent';
+
+      document.getElementById('greeting-input').value = greeting;
+      return;
+    }
+
+    // Handle Christmas styles (traditional, modern, funny, elegant, tropical)
     const backgrounds = {
       traditional: { gradient: ['#1a472a', '#2d5a3a'], accent: '#c41e3a', overlay: 'rgba(26, 71, 42, 0.35)' },
       modern: { gradient: ['#1a1a2e', '#16213e'], accent: '#e8e8e8', overlay: 'rgba(26, 26, 46, 0.4)' },
@@ -620,9 +854,6 @@ class ChristmasCardGenerator {
     };
 
     const style = backgrounds[this.selectedStyle] || backgrounds.traditional;
-
-    // Draw document page as background (must exist - error thrown earlier if not)
-    this.drawDocumentBackground(ctx, this.currentDocumentImage, canvas.width, canvas.height);
 
     // Apply overlay for text readability
     ctx.fillStyle = style.overlay;
@@ -817,15 +1048,12 @@ class ChristmasCardGenerator {
     ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
   }
 
-  updateGreeting() {
-    const greeting = document.getElementById('greeting-input').value;
-    this.drawCard(greeting);
-  }
-
   async saveCard() {
     const canvas = document.getElementById('card-canvas');
     const imageData = canvas.toDataURL('image/png');
     const greeting = document.getElementById('greeting-input').value;
+    const saveBtn = document.getElementById('save-card');
+    const originalText = saveBtn.textContent;
 
     try {
       const response = await fetch('/api/cards', {
@@ -840,12 +1068,56 @@ class ChristmasCardGenerator {
 
       const data = await response.json();
       if (data.success) {
-        alert('Card saved to gallery!');
+        // Sparkly success effect
+        saveBtn.classList.add('sparkle-success');
+        saveBtn.textContent = 'Saved! ✨';
+
+        // Create sparkle particles
+        this.createSparkles(saveBtn);
+
+        // Reset after animation
+        setTimeout(() => {
+          saveBtn.classList.remove('sparkle-success');
+          saveBtn.textContent = originalText;
+        }, 2000);
+
         this.loadGallery();
       }
     } catch (error) {
       console.error('Save error:', error);
-      alert('Failed to save card.');
+      // Show error state on button
+      saveBtn.classList.add('save-error');
+      saveBtn.textContent = 'Error!';
+      setTimeout(() => {
+        saveBtn.classList.remove('save-error');
+        saveBtn.textContent = originalText;
+      }, 2000);
+    }
+  }
+
+  // Create sparkle particle effect
+  createSparkles(button) {
+    const rect = button.getBoundingClientRect();
+    const sparkleCount = 12;
+
+    for (let i = 0; i < sparkleCount; i++) {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle-particle';
+      sparkle.textContent = ['✨', '⭐', '💫', '✦'][Math.floor(Math.random() * 4)];
+
+      // Position relative to button
+      sparkle.style.left = `${rect.left + rect.width / 2}px`;
+      sparkle.style.top = `${rect.top + rect.height / 2}px`;
+
+      // Random angle for burst effect
+      const angle = (Math.PI * 2 * i) / sparkleCount;
+      sparkle.style.setProperty('--tx', `${Math.cos(angle) * 100}px`);
+      sparkle.style.setProperty('--ty', `${Math.sin(angle) * 100}px`);
+
+      document.body.appendChild(sparkle);
+
+      // Remove after animation
+      setTimeout(() => sparkle.remove(), 1000);
     }
   }
 
@@ -869,8 +1141,11 @@ class ChristmasCardGenerator {
     document.querySelectorAll('.style-card').forEach(card => card.classList.remove('selected'));
     this.updateSummary();
     document.getElementById('result-section').hidden = true;
-    document.getElementById('ai-response').hidden = true;
+    document.getElementById('greeting-section').hidden = true;
+    document.getElementById('step-2').hidden = true;
+    document.getElementById('step-3').hidden = true;
     document.getElementById('person-autocomplete').value = '';
+    document.getElementById('greeting-input').value = '';
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -928,6 +1203,33 @@ class ChristmasCardGenerator {
     this.currentModalCard = null;
   }
 
+  openPreviewModal() {
+    // Only open modal if there's a preview to show
+    if (!this.currentDocumentImage && !this.currentCard) return;
+
+    const canvas = document.getElementById('card-canvas');
+    const greeting = document.getElementById('greeting-input').value;
+
+    // Create temporary card object from current preview
+    const tempCard = {
+      id: this.currentCard?.id || 'preview',
+      imagePath: canvas.toDataURL('image/png'),
+      personName: this.selectedPersons.map(p => p.name).join(', ') || 'Preview',
+      greeting: greeting || 'Merry Christmas!',
+      createdAt: new Date().toISOString()
+    };
+
+    this.currentModalCard = tempCard;
+
+    // Populate modal
+    document.getElementById('modal-image').src = tempCard.imagePath;
+    document.getElementById('modal-person').textContent = tempCard.personName;
+    document.getElementById('modal-greeting').textContent = tempCard.greeting;
+    document.getElementById('modal-date').textContent = `Preview`;
+
+    document.getElementById('card-modal').hidden = false;
+  }
+
   downloadModalCard() {
     if (!this.currentModalCard) return;
 
@@ -935,27 +1237,6 @@ class ChristmasCardGenerator {
     link.download = `christmas-card-${this.currentModalCard.personName.replace(/\s+/g, '-')}.png`;
     link.href = this.currentModalCard.imagePath;
     link.click();
-  }
-
-  async deleteModalCard() {
-    if (!this.currentModalCard) return;
-
-    if (!confirm('Are you sure you want to delete this card?')) return;
-
-    try {
-      const response = await fetch(`/api/cards/${this.currentModalCard.id}`, {
-        method: 'DELETE'
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        this.closeModal();
-        this.loadGallery();
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('Failed to delete card.');
-    }
   }
 }
 

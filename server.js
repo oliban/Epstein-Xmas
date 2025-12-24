@@ -11,7 +11,8 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+// Increase payload limit for canvas image data
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(join(__dirname, 'public')));
 app.use('/gallery', express.static(join(__dirname, 'gallery')));
 
@@ -87,30 +88,101 @@ app.post('/api/find-page-with-persons', (req, res) => {
     });
   });
 
-  // Find pages with maximum number of matches
-  let maxMatches = 0;
-  let bestPages = [];
-
+  // Calculate quality score for each page
+  const scoredPages = [];
   for (const [pageKey, data] of pageMap.entries()) {
+    const appearance = data.appearances[0];
     const matchCount = data.persons.size;
-    if (matchCount > maxMatches) {
-      maxMatches = matchCount;
-      bestPages = [data];
-    } else if (matchCount === maxMatches) {
-      bestPages.push(data);
+
+    // TIER 1: Exponential match count (dominates everything)
+    let score = Math.pow(matchCount, 3) * 10000;
+
+    // TIER 2: Quality bonuses (max ~200 points)
+    if (appearance.page === 1) {
+      score += 100;
     }
+
+    // Penalty: High page numbers
+    if (appearance.page >= 20) {
+      score -= 50;
+    } else if (appearance.page >= 10) {
+      score -= 20;
+    }
+
+    // Bonus: High confidence
+    if (appearance.confidence > 99.9) {
+      score += 30;
+    } else if (appearance.confidence > 99) {
+      score += 15;
+    }
+
+    // TIER 3: Refined grid detection (-200 max)
+    const personCounts = new Map();
+    data.appearances.forEach(app => {
+      personCounts.set(app.personName, (personCounts.get(app.personName) || 0) + 1);
+    });
+
+    const multipleDetections = Array.from(personCounts.values()).filter(count => count >= 2);
+    const maxPersonCount = Math.max(...personCounts.values());
+
+    let isGridLayout = false;
+    if (personCounts.size === 1 && maxPersonCount >= 3) {
+      // Single person, 3+ detections = grid catalog
+      isGridLayout = true;
+    } else if (multipleDetections.length >= 2) {
+      // Multiple persons each appearing 2+ times = grid catalog
+      isGridLayout = true;
+    }
+
+    if (isGridLayout) {
+      score -= 200;
+    }
+
+    // TIER 4: Crowded page penalty (minor)
+    if (data.appearances.length > 6) {
+      score -= (data.appearances.length - 6) * 20;
+    }
+
+    scoredPages.push({
+      data,
+      appearance,
+      matchCount,
+      score,
+      isGridLayout
+    });
   }
 
-  // Randomly select from best pages
-  const selectedPage = bestPages[Math.floor(Math.random() * bestPages.length)];
-  const appearance = selectedPage.appearances[0];
+  // Sort by score descending (multi-person pages first, then quality)
+  scoredPages.sort((a, b) => b.score - a.score);
+
+  // CRITICAL CHANGE: Return ALL pages, not just top 10%
+  // This ensures all selected persons are represented in results
+  const allPages = scoredPages;
+
+  // Log summary
+  console.log(`Returning ${allPages.length} total pages:`);
+  const matchCountBreakdown = {};
+  allPages.forEach(page => {
+    matchCountBreakdown[page.matchCount] = (matchCountBreakdown[page.matchCount] || 0) + 1;
+  });
+  console.log('Pages by match count:', matchCountBreakdown);
+
+  // Return all pages
+  const pages = allPages.map(page => ({
+    imageUrl: constructImageUrl(page.appearance.file, page.appearance.page),
+    matchedPersons: Array.from(page.data.persons),
+    matchCount: page.matchCount,
+    confidence: page.appearance.confidence,
+    score: page.score,
+    isGridLayout: page.isGridLayout,
+    file: page.appearance.file,
+    page: page.appearance.page
+  }));
 
   res.json({
-    imageUrl: constructImageUrl(appearance.file, appearance.page),
-    matchedPersons: Array.from(selectedPage.persons),
-    matchCount: maxMatches,
-    totalRequested: personIds.length,
-    confidence: appearance.confidence
+    pages,
+    totalPages: pages.length,
+    totalRequested: personIds.length
   });
 });
 
@@ -207,25 +279,6 @@ app.get('/api/cards', async (req, res) => {
   } catch (error) {
     console.error('List error:', error);
     res.json([]);
-  }
-});
-
-// API: Delete a card
-app.delete('/api/cards/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const { unlink } = await import('fs/promises');
-    const imagePath = join(galleryDir, `${id}.png`);
-    const metadataPath = join(galleryDir, `${id}.json`);
-
-    if (existsSync(imagePath)) await unlink(imagePath);
-    if (existsSync(metadataPath)) await unlink(metadataPath);
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Delete error:', error);
-    res.status(500).json({ error: 'Failed to delete card' });
   }
 });
 

@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Git
+.git/
+.gitignore
+
+# Gallery contents (will be in volume)
+gallery/*.png
+gallery/*.json
+
+# Environment files
+.env
+.env.*
+
+# Development files
+.vscode/
+.idea/
+*.log
+
+# OS files
+.DS_Store
+
+# Documentation
+README.md
+*.md
+
+# CI/CD
+.github/
+
+# Claude files
+.claude/
