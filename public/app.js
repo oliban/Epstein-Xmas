@@ -570,9 +570,6 @@ class ChristmasCardGenerator {
 
   // Fetch image and show preview immediately
   async fetchAndPreview() {
-    console.log('=== fetchAndPreview called ===');
-    console.log('Selected persons:', this.selectedPersons.map(p => p.name));
-
     if (this.selectedPersons.length === 0) {
       this.currentDocumentImage = null;
       document.getElementById('result-section').hidden = true;
@@ -590,8 +587,6 @@ class ChristmasCardGenerator {
       if (this.selectedStyle) {
         await this.updatePreview();
       }
-
-      console.log('=== fetchAndPreview completed ===');
     } catch (error) {
       console.error('Preview error:', error);
       alert(error.message || 'Failed to load document image');
@@ -662,7 +657,6 @@ class ChristmasCardGenerator {
     }
 
     const pageData = await pageResponse.json();
-    console.log('Received page data:', pageData);
 
     // Validate response - NO FALLBACKS
     if (!pageData.pages || pageData.pages.length === 0) {
@@ -696,15 +690,11 @@ class ChristmasCardGenerator {
 
     // Update navigation UI
     this.updateNavigationUI();
-
-    console.log(`Found ${this.matchedPages.length} matching pages, starting at ${this.currentPageIndex + 1}`);
   }
 
   async loadPageAtIndex(index) {
     const page = this.matchedPages[index];
     if (!page) return;
-
-    console.log(`Loading page ${index + 1}/${this.matchedPages.length} from ${page.imageUrl}`);
 
     // Fetch the image
     const imgResponse = await fetch(page.imageUrl, { cache: 'no-cache' });
@@ -714,8 +704,6 @@ class ChristmasCardGenerator {
 
     const blob = await imgResponse.blob();
     this.currentDocumentImage = await this.createImageFromBlob(blob);
-
-    console.log(`Loaded page ${index + 1}/${this.matchedPages.length}: ${page.matchedPersons.join(', ')} (confidence: ${page.confidence.toFixed(1)}%)`);
   }
 
   async nextPage() {

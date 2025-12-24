@@ -159,14 +159,6 @@ app.post('/api/find-page-with-persons', (req, res) => {
   // This ensures all selected persons are represented in results
   const allPages = scoredPages;
 
-  // Log summary
-  console.log(`Returning ${allPages.length} total pages:`);
-  const matchCountBreakdown = {};
-  allPages.forEach(page => {
-    matchCountBreakdown[page.matchCount] = (matchCountBreakdown[page.matchCount] || 0) + 1;
-  });
-  console.log('Pages by match count:', matchCountBreakdown);
-
   // Return all pages
   const pages = allPages.map(page => ({
     imageUrl: constructImageUrl(page.appearance.file, page.appearance.page),
