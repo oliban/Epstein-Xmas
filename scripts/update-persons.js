@@ -46,6 +46,13 @@ function generateId(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+function cleanFilePath(filepath) {
+  // Remove local path prefix
+  const cleaned = filepath.replace('/Users/rhyssullivan/src/epstein-files-browser/files/', '');
+  // Remove .pdf extension
+  return cleaned.replace('.pdf', '');
+}
+
 async function fetchPersons() {
   console.log('Fetching persons from epstein-files-browser...');
   console.log(`Source: ${SOURCE_URL}\n`);
@@ -66,19 +73,34 @@ async function fetchPersons() {
       rawData = await response.json();
     }
 
-    // Extract unique celebrities from the data
+    // Extract unique celebrities and appearances from the data
     const uniqueCelebrities = rawData.uniqueCelebrities || [];
+    const celebrityAppearances = rawData.celebrityAppearances || {};
 
     console.log(`Source data: ${rawData.totalImages} images, ${rawData.imagesWithCelebrities} with celebrities`);
     console.log(`Found ${uniqueCelebrities.length} unique persons\n`);
 
-    // Create persons array with categories
-    const persons = uniqueCelebrities.map(name => ({
-      id: generateId(name),
-      name: name,
-      category: getCategory(name),
-      image: null // Images would need separate fetching
-    }));
+    // Create persons array with categories and appearances
+    const persons = uniqueCelebrities.map(name => {
+      const appearances = celebrityAppearances[name] || [];
+
+      // Clean and sort appearances
+      const cleanedAppearances = appearances
+        .map(app => ({
+          file: cleanFilePath(app.file),
+          page: app.page,
+          confidence: app.confidence
+        }))
+        .sort((a, b) => b.confidence - a.confidence); // Sort by confidence descending
+
+      return {
+        id: generateId(name),
+        name: name,
+        category: getCategory(name),
+        image: null,
+        appearances: cleanedAppearances
+      };
+    });
 
     // Sort: Primary first, then by category, then alphabetically
     const categoryOrder = ['Primary', 'Political', 'Royalty', 'Business', 'Entertainment', 'Science', 'Legal', 'Other'];
@@ -125,7 +147,10 @@ async function fetchPersons() {
     // Print notable persons
     console.log('\nNotable persons found:');
     const notable = persons.filter(p => p.category !== 'Other').slice(0, 20);
-    notable.forEach(p => console.log(`  - ${p.name} (${p.category})`));
+    notable.forEach(p => {
+      const appearanceCount = p.appearances.length;
+      console.log(`  - ${p.name} (${p.category}) - ${appearanceCount} appearances`);
+    });
 
   } catch (error) {
     console.error('Error fetching persons:', error.message);

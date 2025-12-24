@@ -21,14 +21,97 @@ if (!existsSync(galleryDir)) {
   await mkdir(galleryDir, { recursive: true });
 }
 
+// Load persons data
+let personsData = null;
+try {
+  const data = await readFile(join(__dirname, 'data', 'persons.json'), 'utf-8');
+  personsData = JSON.parse(data);
+} catch (error) {
+  console.error('Warning: Could not load persons data:', error.message);
+}
+
 // API: Get list of persons
 app.get('/api/persons', async (req, res) => {
   try {
-    const data = await readFile(join(__dirname, 'data', 'persons.json'), 'utf-8');
-    res.json(JSON.parse(data));
+    if (personsData) {
+      res.json(personsData);
+    } else {
+      const data = await readFile(join(__dirname, 'data', 'persons.json'), 'utf-8');
+      personsData = JSON.parse(data);
+      res.json(personsData);
+    }
   } catch (error) {
     res.status(500).json({ error: 'Failed to load persons' });
   }
+});
+
+// Helper function to construct image URL from file path and page number
+function constructImageUrl(filePath, pageNumber) {
+  // filePath is already cleaned (no .pdf extension)
+  const pageStr = String(pageNumber).padStart(3, '0');
+  return `https://epstein-files.rhys-669.workers.dev/pdfs-as-jpegs/${filePath}/page-${pageStr}.jpg`;
+}
+
+// API: Find document page containing maximum number of selected persons
+app.post('/api/find-page-with-persons', (req, res) => {
+  const { personIds } = req.body;
+
+  if (!personIds || personIds.length === 0) {
+    return res.status(400).json({ error: 'personIds required' });
+  }
+
+  if (!personsData) {
+    return res.status(500).json({ error: 'Persons data not loaded' });
+  }
+
+  // Load person data and appearances
+  const persons = personIds.map(id =>
+    personsData.persons.find(p => p.id === id)
+  ).filter(p => p && p.appearances && p.appearances.length > 0);
+
+  if (persons.length === 0) {
+    return res.json({ imageUrl: null, matchCount: 0 });
+  }
+
+  // Build a map: pageKey -> { persons: Set(), appearances: [...] }
+  const pageMap = new Map();
+
+  persons.forEach(person => {
+    person.appearances.forEach(app => {
+      const pageKey = `${app.file}:${app.page}`;
+      if (!pageMap.has(pageKey)) {
+        pageMap.set(pageKey, { persons: new Set(), appearances: [] });
+      }
+      pageMap.get(pageKey).persons.add(person.name);
+      pageMap.get(pageKey).appearances.push({ ...app, personName: person.name });
+    });
+  });
+
+  // Find pages with maximum number of matches
+  let maxMatches = 0;
+  let bestPages = [];
+
+  for (const [pageKey, data] of pageMap.entries()) {
+    const matchCount = data.persons.size;
+    if (matchCount > maxMatches) {
+      maxMatches = matchCount;
+      bestPages = [data];
+    } else if (matchCount === maxMatches) {
+      bestPages.push(data);
+    }
+  }
+
+  // Randomly select from best pages
+  const selectedPage = bestPages[Math.floor(Math.random() * bestPages.length)];
+  const appearance = selectedPage.appearances[0];
+
+  res.json({
+    imageUrl: constructImageUrl(appearance.file, appearance.page),
+    matchedPersons: Array.from(selectedPage.persons),
+    matchCount: maxMatches,
+    totalRequested: personIds.length,
+    confidence: appearance.confidence
+  });
 });
 
 // API: Generate Christmas card

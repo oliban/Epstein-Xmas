@@ -478,6 +478,34 @@ class ChristmasCardGenerator {
       const data = await response.json();
       this.currentCard = data.card;
 
+      // Fetch document image for selected persons
+      const personIdsList = this.selectedPersons.map(p => p.id);
+      const pageResponse = await fetch('/api/find-page-with-persons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personIds: personIdsList })
+      });
+
+      const pageData = await pageResponse.json();
+
+      // Validate response - NO FALLBACKS
+      if (!pageData.imageUrl || pageData.matchCount === 0) {
+        throw new Error('No document pages found for the selected persons');
+      }
+
+      // Fetch the actual image - throws error if fails
+      const imgResponse = await fetch(pageData.imageUrl);
+      if (!imgResponse.ok) {
+        throw new Error(`Failed to load document image (HTTP ${imgResponse.status})`);
+      }
+
+      const blob = await imgResponse.blob();
+      this.currentDocumentImage = await this.createImageFromBlob(blob);
+
+      // Log match info
+      console.log(`Found ${pageData.matchCount}/${pageData.totalRequested} persons on page`);
+      console.log(`Matched persons: ${pageData.matchedPersons.join(', ')}`);
+
       // Generate AI greeting
       let aiGreeting = await this.generateAIGreeting();
 
@@ -540,20 +568,20 @@ class ChristmasCardGenerator {
     canvas.height = 600;
 
     const backgrounds = {
-      traditional: { gradient: ['#1a472a', '#2d5a3a'], accent: '#c41e3a' },
-      modern: { gradient: ['#1a1a2e', '#16213e'], accent: '#e8e8e8' },
-      funny: { gradient: ['#ff6b6b', '#feca57'], accent: '#ffffff' },
-      elegant: { gradient: ['#2c1810', '#4a2c2a'], accent: '#d4af37' },
-      tropical: { gradient: ['#00b4d8', '#48cae4'], accent: '#ff9f1c' }
+      traditional: { gradient: ['#1a472a', '#2d5a3a'], accent: '#c41e3a', overlay: 'rgba(26, 71, 42, 0.35)' },
+      modern: { gradient: ['#1a1a2e', '#16213e'], accent: '#e8e8e8', overlay: 'rgba(26, 26, 46, 0.4)' },
+      funny: { gradient: ['#ff6b6b', '#feca57'], accent: '#ffffff', overlay: 'rgba(255, 107, 107, 0.3)' },
+      elegant: { gradient: ['#2c1810', '#4a2c2a'], accent: '#d4af37', overlay: 'rgba(44, 24, 16, 0.35)' },
+      tropical: { gradient: ['#00b4d8', '#48cae4'], accent: '#ff9f1c', overlay: 'rgba(0, 180, 216, 0.3)' }
     };
 
     const style = backgrounds[this.selectedStyle] || backgrounds.traditional;
 
-    // Draw gradient background
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, style.gradient[0]);
-    gradient.addColorStop(1, style.gradient[1]);
-    ctx.fillStyle = gradient;
+    // Draw document page as background (must exist - error thrown earlier if not)
+    this.drawDocumentBackground(ctx, this.currentDocumentImage, canvas.width, canvas.height);
+
+    // Apply overlay for text readability
+    ctx.fillStyle = style.overlay;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw decorative elements
@@ -703,6 +731,46 @@ class ChristmasCardGenerator {
       }
     }
     ctx.fillText(line.trim(), x, y);
+  }
+
+  // Create an Image element from a Blob
+  createImageFromBlob(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // Draw document page as background, maintaining aspect ratio
+  drawDocumentBackground(ctx, image, width, height) {
+    // Cover canvas while maintaining aspect ratio
+    const imgRatio = image.width / image.height;
+    const canvasRatio = width / height;
+
+    let drawWidth, drawHeight, offsetX, offsetY;
+
+    if (imgRatio > canvasRatio) {
+      // Image wider - fit to height
+      drawHeight = height;
+      drawWidth = height * imgRatio;
+      offsetX = (width - drawWidth) / 2;
+      offsetY = 0;
+    } else {
+      // Image taller - fit to width
+      drawWidth = width;
+      drawHeight = width / imgRatio;
+      offsetX = 0;
+      offsetY = (height - drawHeight) / 2;
+    }
+
+    ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
   }
 
   updateGreeting() {
