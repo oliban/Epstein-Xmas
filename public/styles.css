@@ -1094,18 +1094,19 @@ footer {
   /* Floating card preview on mobile - only when scrolled past */
   .card-preview.sticky-active {
     position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 999;
-    max-width: 90vw;
-    width: auto;
+    width: 100vw;
     background: white;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    padding: 0.5rem;
+    border-radius: 0;
   }
 
   #card-canvas {
-    max-width: calc(90vw - 2rem);
+    max-width: 100%;
     max-height: 40vh;
     width: 100%;
     height: auto;
