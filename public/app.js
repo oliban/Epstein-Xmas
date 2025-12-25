@@ -49,17 +49,45 @@ class ChristmasCardGenerator {
     this.loadProfessionalAssets();
   }
 
-  // Preload professional style PNG assets
+  // Preload all style PNG assets
   async loadProfessionalAssets() {
     if (this.assetsLoaded) return;
 
     const assetUrls = {
-      garlandHorizontal: '/assets/garland-horizontal.png',
-      garlandHorizontalAlt: '/assets/garland-horizontal-alt.png',
-      bellGold: '/assets/bell-gold.png',
-      bellMedium: '/assets/bell-medium.png',
-      ribbonBanner: '/assets/ribbon-banner.png',
-      ribbonBannerAlt: '/assets/ribbon-banner-alt.png'
+      // Professional
+      garlandHorizontal: '/assets/professional/garland-horizontal.png',
+      garlandHorizontalAlt: '/assets/professional/garland-horizontal-alt.png',
+      bellGold: '/assets/professional/bell-gold.png',
+      bellMedium: '/assets/professional/bell-medium.png',
+      ribbonBanner: '/assets/professional/ribbon-banner.png',
+      ribbonBannerAlt: '/assets/professional/ribbon-banner-alt.png',
+
+      // Traditional
+      traditional_holly: '/assets/traditional/holly-garland.png',
+      traditional_ornament_red: '/assets/traditional/ornament-red.png',
+      traditional_ornament_gold: '/assets/traditional/ornament-gold.png',
+      traditional_ornament_green: '/assets/traditional/ornament-green.png',
+
+      // Modern
+      modern_snowflake: '/assets/modern/snowflake-modern.png',
+      modern_star: '/assets/modern/star-geometric.png',
+
+      // Funny
+      funny_santa: '/assets/funny/santa-cartoon.png',
+
+      // Elegant
+      elegant_frame: '/assets/elegant/ornate-frame.png',
+
+      // Tropical
+      tropical_palm_tree: '/assets/tropical/palm-tree.png',
+      tropical_palm_tree_2: '/assets/tropical/palm-tree-2.png',
+      tropical_palm_tree_4: '/assets/tropical/palm-tree-4.png',
+      tropical_hibiscus: '/assets/tropical/hibiscus-flower.png',
+      tropical_plumeria: '/assets/tropical/plumeria.png',
+      tropical_monstera: '/assets/tropical/monstera-leaf.png',
+      tropical_coconut: '/assets/tropical/coconut-ornament.png',
+      tropical_shell: '/assets/tropical/shell.png',
+      tropical_pineapple: '/assets/tropical/pineapple.png'
     };
 
     const loadPromises = Object.entries(assetUrls).map(([key, url]) => {
@@ -67,11 +95,11 @@ class ChristmasCardGenerator {
         const img = new Image();
         img.onload = () => {
           this.professionalAssets[key] = img;
-          console.log(`Loaded professional asset: ${key}`);
+          console.log(`Loaded asset: ${key}`);
           resolve();
         };
         img.onerror = () => {
-          console.warn(`Failed to load professional asset: ${url}`);
+          console.warn(`Failed to load asset: ${url}`);
           resolve(); // Don't reject, allow graceful degradation
         };
         img.src = url;
@@ -80,7 +108,7 @@ class ChristmasCardGenerator {
 
     await Promise.all(loadPromises);
     this.assetsLoaded = true;
-    console.log('Professional assets loaded successfully');
+    console.log('All style assets loaded successfully');
   }
 
   // Create falling snow effect
@@ -851,31 +879,9 @@ class ChristmasCardGenerator {
       return;
     }
 
-    // Handle "greeting-only" style - document + greeting text only
-    if (this.selectedStyle === 'greeting-only') {
-      // Light overlay for text readability
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw greeting text
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 32px "Inter", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-      this.wrapText(ctx, greeting, canvas.width / 2, canvas.height / 2, canvas.width - 100, 40);
-      ctx.shadowColor = 'transparent';
-
-      document.getElementById('greeting-input').value = greeting;
-      return;
-    }
-
-    // Handle Christmas styles (traditional, modern, funny, elegant, tropical, professional)
+    // Handle Christmas styles (traditional, funny, elegant, tropical, professional)
     const backgrounds = {
       traditional: { gradient: ['#1a472a', '#2d5a3a'], accent: '#c41e3a', overlay: 'rgba(26, 71, 42, 0.35)' },
-      modern: { gradient: ['#1a1a2e', '#16213e'], accent: '#e8e8e8', overlay: 'rgba(26, 26, 46, 0.4)' },
       funny: { gradient: ['#ff6b6b', '#feca57'], accent: '#ffffff', overlay: 'rgba(255, 107, 107, 0.3)' },
       elegant: { gradient: ['#2c1810', '#4a2c2a'], accent: '#d4af37', overlay: 'rgba(44, 24, 16, 0.35)' },
       tropical: { gradient: ['#00b4d8', '#48cae4'], accent: '#ff9f1c', overlay: 'rgba(0, 180, 216, 0.3)' },
@@ -895,35 +901,56 @@ class ChristmasCardGenerator {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Add sparkle/glitter effect (like reference image)
-      for (let i = 0; i < 150; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const size = Math.random() * 2.5 + 0.5;
-        const opacity = Math.random() * 0.6 + 0.2;
+      this.drawSparkles(ctx, 150, ['rgba(255, 215, 0, OPACITY)', 'rgba(255, 255, 255, OPACITY)'], [0.6, 0.4]);
+    } else if (this.selectedStyle === 'traditional') {
+      // Rich forest green gradient for traditional style
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(26, 71, 42, 0.25)');
+      gradient.addColorStop(0.5, 'rgba(45, 90, 58, 0.3)');
+      gradient.addColorStop(1, 'rgba(21, 56, 34, 0.35)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Mix of white and gold sparkles
-        const isGold = Math.random() > 0.6;
-        ctx.fillStyle = isGold
-          ? `rgba(255, 215, 0, ${opacity})`
-          : `rgba(255, 255, 255, ${opacity})`;
+      // Add 100 golden and red sparkles
+      this.drawSparkles(ctx, 100, ['rgba(255, 215, 0, OPACITY)', 'rgba(196, 30, 58, OPACITY)'], [0.7, 0.3]);
+    } else if (this.selectedStyle === 'funny') {
+      // Vibrant gradient for funny style
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(255, 107, 107, 0.25)');
+      gradient.addColorStop(0.5, 'rgba(254, 202, 87, 0.3)');
+      gradient.addColorStop(1, 'rgba(255, 107, 107, 0.25)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Star-like sparkle
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(Math.random() * Math.PI);
-        ctx.beginPath();
-        ctx.moveTo(0, -size);
-        ctx.lineTo(size/3, -size/3);
-        ctx.lineTo(size, 0);
-        ctx.lineTo(size/3, size/3);
-        ctx.lineTo(0, size);
-        ctx.lineTo(-size/3, size/3);
-        ctx.lineTo(-size, 0);
-        ctx.lineTo(-size/3, -size/3);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
+      // Add 80 rainbow-colored sparkles
+      this.drawSparkles(ctx, 80, [
+        'rgba(255, 107, 107, OPACITY)',
+        'rgba(254, 202, 87, OPACITY)',
+        'rgba(99, 205, 218, OPACITY)',
+        'rgba(162, 155, 254, OPACITY)'
+      ], [0.25, 0.25, 0.25, 0.25]);
+    } else if (this.selectedStyle === 'elegant') {
+      // Rich burgundy/brown gradient for elegant style
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(44, 24, 16, 0.25)');
+      gradient.addColorStop(0.5, 'rgba(74, 44, 42, 0.3)');
+      gradient.addColorStop(1, 'rgba(44, 24, 16, 0.35)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Add 100 subtle gold sparkles
+      this.drawSparkles(ctx, 100, ['rgba(212, 175, 55, OPACITY)'], [1.0]);
+    } else if (this.selectedStyle === 'tropical') {
+      // Subtle warm tropical overlay
+      ctx.fillStyle = 'rgba(255, 220, 150, 0.15)'; // Very subtle warm golden tint
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Add sparkles with tropical colors
+      this.drawSparkles(ctx, 100, [
+        'rgba(255, 255, 255, OPACITY)',      // White sparkles (60%)
+        'rgba(255, 215, 0, OPACITY)',        // Golden sparkles (30%)
+        'rgba(0, 255, 200, OPACITY)'         // Bright aqua sparkles (10%)
+      ], [0.6, 0.3, 0.1]);
     } else {
       ctx.fillStyle = style.overlay;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -965,22 +992,153 @@ class ChristmasCardGenerator {
 
       this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 200, 56);
       ctx.shadowColor = 'transparent';
+    } else if (this.selectedStyle === 'traditional') {
+      // Traditional style: Red and gold text with festive font
+      ctx.textAlign = 'center';
+
+      // Header in red with gold outline
+      ctx.font = 'bold 56px "Mountains of Christmas", cursive, serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      // Gold outline
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 3;
+      ctx.strokeText('Merry Christmas!', canvas.width / 2, 95);
+
+      // Red fill
+      ctx.fillStyle = '#c41e3a';
+      ctx.fillText('Merry Christmas!', canvas.width / 2, 95);
+      ctx.shadowColor = 'transparent';
+
+      // Person names in white
+      ctx.fillStyle = '#ffffff';
+      const names = this.getPersonNames();
+      const fontSize = names.length > 40 ? 28 : 36;
+      ctx.font = `bold ${fontSize}px "Mountains of Christmas", cursive, serif`;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 8;
+      this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 165, canvas.width - 100, fontSize + 8);
+      ctx.shadowColor = 'transparent';
+
+      // Greeting text in gold
+      ctx.fillStyle = '#d4af37';
+      ctx.font = '26px "Mountains of Christmas", cursive, serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 6;
+      this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 120, 34);
+      ctx.shadowColor = 'transparent';
+    } else if (this.selectedStyle === 'funny') {
+      // Funny style: Colorful playful text
+      ctx.textAlign = 'center';
+
+      // Header with rainbow effect
+      ctx.font = 'bold 54px "Mountains of Christmas", cursive, serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 10;
+
+      // Colorful stroke
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 4;
+      ctx.strokeText('Merry Christmas!', canvas.width / 2, 92);
+
+      // Yellow fill
+      ctx.fillStyle = '#feca57';
+      ctx.fillText('Merry Christmas!', canvas.width / 2, 92);
+      ctx.shadowColor = 'transparent';
+
+      // Person names in white with strong shadow
+      ctx.fillStyle = '#ffffff';
+      const names = this.getPersonNames();
+      const fontSize = names.length > 40 ? 28 : 36;
+      ctx.font = `bold ${fontSize}px "Mountains of Christmas", cursive, serif`;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 10;
+      this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 162, canvas.width - 100, fontSize + 8);
+      ctx.shadowColor = 'transparent';
+
+      // Greeting text in vibrant color
+      ctx.fillStyle = '#ff6b6b';
+      ctx.font = '28px "Mountains of Christmas", cursive, serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 8;
+      this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 120, 36);
+      ctx.shadowColor = 'transparent';
+    } else if (this.selectedStyle === 'elegant') {
+      // Elegant style: Burgundy and gold sophisticated text
+      ctx.textAlign = 'center';
+
+      // Header in elegant script
+      ctx.font = 'bold 58px "Great Vibes", cursive';
+      ctx.fillStyle = '#d4af37'; // Gold
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 12;
+      ctx.fillText('Merry Christmas!', canvas.width / 2, 96);
+      ctx.shadowColor = 'transparent';
+
+      // Person names in white with gold glow
+      ctx.fillStyle = '#ffffff';
+      const names = this.getPersonNames();
+      const fontSize = names.length > 40 ? 26 : 34;
+      ctx.font = `${fontSize}px "Great Vibes", cursive`;
+      ctx.shadowColor = 'rgba(212, 175, 55, 0.4)';
+      ctx.shadowBlur = 10;
+      this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 165, canvas.width - 120, fontSize + 8);
+      ctx.shadowColor = 'transparent';
+
+      // Greeting text in burgundy
+      ctx.fillStyle = '#8b4513'; // Saddle brown
+      ctx.font = '32px "Great Vibes", cursive';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 8;
+      this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 140, 40);
+      ctx.shadowColor = 'transparent';
+    } else if (this.selectedStyle === 'tropical') {
+      // Tropical style: Vibrant orange and turquoise text
+      ctx.textAlign = 'center';
+
+      // Header in bright orange
+      ctx.font = 'bold 56px "Mountains of Christmas", cursive, serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = '#ff9f1c'; // Bright orange
+      ctx.fillText('Merry Christmas!', canvas.width / 2, 94);
+      ctx.shadowColor = 'transparent';
+
+      // Person names in white with warm glow
+      ctx.fillStyle = '#ffffff';
+      const names = this.getPersonNames();
+      const fontSize = names.length > 40 ? 28 : 36;
+      ctx.font = `bold ${fontSize}px "Mountains of Christmas", cursive, serif`;
+      ctx.shadowColor = 'rgba(255, 159, 28, 0.4)';
+      ctx.shadowBlur = 10;
+      this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 164, canvas.width - 100, fontSize + 8);
+      ctx.shadowColor = 'transparent';
+
+      // Greeting text in golden yellow
+      ctx.fillStyle = '#FFD700'; // Golden yellow
+      ctx.font = '26px "Mountains of Christmas", cursive, serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 120, 34);
+      ctx.shadowColor = 'transparent';
     } else {
-      // Standard text rendering for other styles
-      // Draw header
+      // Fallback standard text rendering
       ctx.fillStyle = style.accent;
       ctx.font = 'bold 48px "Mountains of Christmas", cursive, serif';
       ctx.textAlign = 'center';
       ctx.fillText('Merry Christmas!', canvas.width / 2, 80);
 
-      // Draw person names
       ctx.fillStyle = '#ffffff';
       const names = this.getPersonNames();
       const fontSize = names.length > 40 ? 28 : 36;
       ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
       this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 140, canvas.width - 80, fontSize + 8);
 
-      // Draw greeting text
       ctx.font = '22px "Inter", sans-serif';
       this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 100, 30);
     }
@@ -995,49 +1153,32 @@ class ChristmasCardGenerator {
 
     switch (style) {
       case 'traditional':
-        this.drawTree(ctx, 80, 350, 60);
-        this.drawTree(ctx, 720, 350, 60);
-        for (let i = 0; i < 30; i++) {
-          this.drawSnowflake(ctx, Math.random() * 800, Math.random() * 400 + 50, Math.random() * 10 + 5);
-        }
-        this.drawOrnaments(ctx);
-        break;
-      case 'modern':
-        for (let i = 0; i < 15; i++) {
-          ctx.save();
-          ctx.globalAlpha = 0.3;
-          ctx.beginPath();
-          ctx.arc(Math.random() * 800, Math.random() * 600, Math.random() * 50 + 20, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.restore();
-        }
+        // Draw holly garland border
+        this.drawTraditionalBorder(ctx);
+        // Draw PNG ornaments in corners
+        this.drawTraditionalOrnaments(ctx);
+        // Draw festive snowflakes (reuse from professional)
+        this.drawFestiveSnowflakes(ctx);
         break;
       case 'funny':
-        ctx.font = '60px serif';
-        ctx.fillText('🎅', 100, 300);
-        ctx.fillText('🦌', 700, 300);
-        ctx.fillText('🎁', 400, 350);
-        ctx.font = '40px serif';
-        ctx.fillText('🎄', 200, 400);
-        ctx.fillText('⛄', 600, 400);
+        // Draw comic-style border
+        this.drawFunnyBorder(ctx);
+        // Draw cartoon characters
+        this.drawFunnyCharacters(ctx);
         break;
       case 'elegant':
-        ctx.lineWidth = 3;
-        ctx.strokeRect(30, 30, 740, 540);
-        ctx.strokeRect(40, 40, 720, 520);
-        this.drawCornerDecoration(ctx, 50, 50);
-        this.drawCornerDecoration(ctx, 750, 50, true);
-        this.drawCornerDecoration(ctx, 50, 550, false, true);
-        this.drawCornerDecoration(ctx, 750, 550, true, true);
+        // Draw ornate frame border
+        this.drawElegantBorder(ctx);
+        // Draw filigree corners
+        this.drawElegantCorners(ctx);
+        // Draw crystal ornaments
+        this.drawElegantOrnaments(ctx);
         break;
       case 'tropical':
-        ctx.font = '80px serif';
-        ctx.fillText('🌴', 50, 380);
-        ctx.fillText('🌴', 700, 380);
-        ctx.fillText('☀️', 400, 200);
-        ctx.font = '50px serif';
-        ctx.fillText('🌺', 150, 450);
-        ctx.fillText('🌺', 650, 450);
+        // Draw palm frond border
+        this.drawTropicalBorder(ctx);
+        // Draw tropical flowers
+        this.drawTropicalFlowers(ctx);
         break;
       case 'professional':
         // Draw garland borders
@@ -1533,6 +1674,660 @@ class ChristmasCardGenerator {
       scaledWidth, targetHeight
     );
 
+    ctx.restore();
+  }
+
+  // Traditional style decoration methods
+  drawTraditionalBorder(ctx) {
+    if (!this.professionalAssets.traditional_holly) {
+      console.warn('Traditional holly asset not loaded');
+      return;
+    }
+
+    const canvas = ctx.canvas;
+    const holly = this.professionalAssets.traditional_holly;
+
+    // Calculate target height for holly garland
+    const targetHeight = 100;
+    const scale = targetHeight / holly.height;
+    const scaledWidth = holly.width * scale;
+
+    ctx.save();
+
+    // Draw top holly garland - tiled across width
+    const repetitions = Math.ceil(canvas.width / scaledWidth);
+    for (let i = 0; i < repetitions; i++) {
+      ctx.drawImage(
+        holly,
+        0, 0,
+        holly.width, holly.height,
+        i * scaledWidth, 0,
+        scaledWidth, targetHeight
+      );
+    }
+
+    // Draw bottom holly garland (flipped vertically)
+    ctx.save();
+    ctx.translate(0, canvas.height);
+    ctx.scale(1, -1);
+    for (let i = 0; i < repetitions; i++) {
+      ctx.drawImage(
+        holly,
+        0, 0,
+        holly.width, holly.height,
+        i * scaledWidth, 0,
+        scaledWidth, targetHeight
+      );
+    }
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  drawTraditionalOrnaments(ctx) {
+    const ornamentAssets = [
+      this.professionalAssets.traditional_ornament_red,
+      this.professionalAssets.traditional_ornament_gold,
+      this.professionalAssets.traditional_ornament_green
+    ].filter(asset => asset); // Only use loaded assets
+
+    if (ornamentAssets.length === 0) {
+      console.warn('No traditional ornament assets loaded');
+      return;
+    }
+
+    ctx.save();
+
+    const canvas = ctx.canvas;
+    const ornamentSize = 80 + Math.random() * 40; // 80-120px
+
+    // Place ornaments in corners with random selection
+    const positions = [
+      { x: 60, y: 120 }, // Top-left
+      { x: canvas.width - 60, y: 120 }, // Top-right
+      { x: 60, y: canvas.height - 120 }, // Bottom-left
+      { x: canvas.width - 60, y: canvas.height - 120 } // Bottom-right
+    ];
+
+    positions.forEach(pos => {
+      // Randomly select ornament
+      const ornament = ornamentAssets[Math.floor(Math.random() * ornamentAssets.length)];
+      const scale = ornamentSize / ornament.height;
+      const scaledWidth = ornament.width * scale;
+
+      // Random positioning variation
+      const offsetX = (Math.random() - 0.5) * 20;
+      const offsetY = (Math.random() - 0.5) * 20;
+
+      // Add subtle glow
+      ctx.shadowColor = 'rgba(255, 215, 0, 0.3)';
+      ctx.shadowBlur = 15;
+
+      ctx.drawImage(
+        ornament,
+        pos.x + offsetX - scaledWidth / 2,
+        pos.y + offsetY - ornamentSize / 2,
+        scaledWidth,
+        ornamentSize
+      );
+    });
+
+    ctx.shadowColor = 'transparent';
+    ctx.restore();
+  }
+
+  // Modern style decoration methods
+  drawModernBorder(ctx) {
+    if (!this.professionalAssets.modern_star) {
+      console.warn('Modern star asset not loaded');
+      return;
+    }
+
+    const canvas = ctx.canvas;
+    const star = this.professionalAssets.modern_star;
+
+    ctx.save();
+
+    // Draw minimalist border with geometric stars
+    const starSize = 40 + Math.random() * 20;
+    const scale = starSize / star.height;
+    const scaledWidth = star.width * scale;
+
+    // Top corners
+    const topPositions = [
+      { x: 50, y: 50 },
+      { x: canvas.width - 50, y: 50 }
+    ];
+
+    topPositions.forEach(pos => {
+      ctx.globalAlpha = 0.6 + Math.random() * 0.3;
+      ctx.drawImage(
+        star,
+        pos.x - scaledWidth / 2,
+        pos.y - starSize / 2,
+        scaledWidth,
+        starSize
+      );
+    });
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  drawModernBokeh(ctx) {
+    ctx.save();
+
+    const canvas = ctx.canvas;
+
+    // Draw 120 bokeh light effects (soft circular gradients)
+    for (let i = 0; i < 120; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 40 + 15;
+      const opacity = Math.random() * 0.2 + 0.1;
+
+      // Color variations: white, cyan, silver
+      const colors = [
+        `rgba(255, 255, 255, ${opacity})`,
+        `rgba(100, 200, 255, ${opacity})`,
+        `rgba(192, 192, 192, ${opacity})`
+      ];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  drawModernOrnaments(ctx) {
+    if (!this.professionalAssets.modern_snowflake) {
+      return;
+    }
+
+    const canvas = ctx.canvas;
+    const snowflake = this.professionalAssets.modern_snowflake;
+
+    ctx.save();
+
+    // Scatter a few geometric snowflakes
+    for (let i = 0; i < 6; i++) {
+      const size = 50 + Math.random() * 30;
+      const scale = size / snowflake.height;
+      const scaledWidth = snowflake.width * scale;
+
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const rotation = Math.random() * Math.PI * 2;
+      const opacity = 0.3 + Math.random() * 0.3;
+
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.drawImage(
+        snowflake,
+        -scaledWidth / 2,
+        -size / 2,
+        scaledWidth,
+        size
+      );
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // Funny style decoration methods
+  drawFunnyCharacters(ctx) {
+    if (!this.professionalAssets.funny_santa) {
+      console.warn('Funny santa asset not loaded');
+      return;
+    }
+
+    const canvas = ctx.canvas;
+    const santa = this.professionalAssets.funny_santa;
+
+    ctx.save();
+
+    // Place cartoon characters at random tilted angles
+    const positions = [
+      { x: 100, y: 300, rotation: -0.2 },
+      { x: 700, y: 300, rotation: 0.2 },
+      { x: 400, y: 450, rotation: -0.1 }
+    ];
+
+    positions.forEach(pos => {
+      const size = 120 + Math.random() * 40;
+      const scale = size / santa.height;
+      const scaledWidth = santa.width * scale;
+
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(pos.rotation + (Math.random() - 0.5) * 0.2);
+      ctx.drawImage(
+        santa,
+        -scaledWidth / 2,
+        -size / 2,
+        scaledWidth,
+        size
+      );
+      ctx.restore();
+    });
+
+    ctx.restore();
+  }
+
+  drawFunnyBorder(ctx) {
+    ctx.save();
+
+    const canvas = ctx.canvas;
+
+    // Comic-style zigzag border
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+
+    const zigzagSize = 20;
+    const points = Math.floor(canvas.width / zigzagSize);
+
+    // Top border
+    ctx.beginPath();
+    for (let i = 0; i <= points; i++) {
+      const x = i * zigzagSize;
+      const y = i % 2 === 0 ? 15 : 30;
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+
+    // Bottom border
+    ctx.beginPath();
+    for (let i = 0; i <= points; i++) {
+      const x = i * zigzagSize;
+      const y = canvas.height - (i % 2 === 0 ? 15 : 30);
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+
+    // Add comic-style "twinkle" stars
+    ctx.fillStyle = '#feca57';
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 15 + 10;
+
+      this.drawComicStar(ctx, x, y, size);
+    }
+
+    ctx.restore();
+  }
+
+  drawComicStar(ctx, x, y, size) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+      const radius = i % 2 === 0 ? size : size / 2;
+      const px = Math.cos(angle) * radius;
+      const py = Math.sin(angle) * radius;
+      if (i === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Add outline
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // Elegant style decoration methods
+  drawElegantBorder(ctx) {
+    if (!this.professionalAssets.elegant_frame) {
+      console.warn('Elegant frame asset not loaded');
+      return;
+    }
+
+    const canvas = ctx.canvas;
+    const frame = this.professionalAssets.elegant_frame;
+
+    ctx.save();
+
+    // Draw ornate frame in corners
+    const frameSize = 150;
+    const scale = frameSize / Math.max(frame.width, frame.height);
+    const scaledWidth = frame.width * scale;
+    const scaledHeight = frame.height * scale;
+
+    // Top-left corner
+    ctx.drawImage(frame, 10, 10, scaledWidth, scaledHeight);
+
+    // Top-right corner (flipped horizontally)
+    ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(frame, 10, 10, scaledWidth, scaledHeight);
+    ctx.restore();
+
+    // Bottom-left corner (flipped vertically)
+    ctx.save();
+    ctx.translate(0, canvas.height);
+    ctx.scale(1, -1);
+    ctx.drawImage(frame, 10, 10, scaledWidth, scaledHeight);
+    ctx.restore();
+
+    // Bottom-right corner (flipped both ways)
+    ctx.save();
+    ctx.translate(canvas.width, canvas.height);
+    ctx.scale(-1, -1);
+    ctx.drawImage(frame, 10, 10, scaledWidth, scaledHeight);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  drawElegantCorners(ctx) {
+    ctx.save();
+
+    const canvas = ctx.canvas;
+
+    // Draw elegant filigree patterns using curves
+    ctx.strokeStyle = '#d4af37'; // Gold
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+
+    const drawFiligree = (x, y, flipX = 1, flipY = 1) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(flipX, flipY);
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(40, 10, 60, 40);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(10, 40, 40, 60);
+      ctx.stroke();
+
+      ctx.restore();
+    };
+
+    // Draw in all four corners
+    drawFiligree(180, 180, 1, 1);
+    drawFiligree(canvas.width - 180, 180, -1, 1);
+    drawFiligree(180, canvas.height - 180, 1, -1);
+    drawFiligree(canvas.width - 180, canvas.height - 180, -1, -1);
+
+    ctx.restore();
+  }
+
+  drawElegantOrnaments(ctx) {
+    ctx.save();
+
+    const canvas = ctx.canvas;
+
+    // Draw crystal-like ornaments with elegant gradients
+    const positions = [
+      { x: canvas.width / 2, y: 100 },
+      { x: 150, y: canvas.height / 2 },
+      { x: canvas.width - 150, y: canvas.height / 2 }
+    ];
+
+    positions.forEach(pos => {
+      const size = 25 + Math.random() * 10;
+
+      // Crystal gradient (burgundy to gold)
+      const gradient = ctx.createRadialGradient(
+        pos.x - size / 3, pos.y - size / 3, size / 4,
+        pos.x, pos.y, size
+      );
+      gradient.addColorStop(0, '#d4af37'); // Gold
+      gradient.addColorStop(0.5, '#8b4513'); // Saddle brown
+      gradient.addColorStop(1, '#4a2511'); // Dark brown
+
+      ctx.fillStyle = gradient;
+      ctx.shadowColor = 'rgba(212, 175, 55, 0.5)';
+      ctx.shadowBlur = 20;
+
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Add highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(pos.x - size / 3, pos.y - size / 3, size / 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.shadowColor = 'transparent';
+    ctx.restore();
+  }
+
+  // Helper method to draw sparkles with configurable colors
+  drawSparkles(ctx, count, colorTemplates, probabilities) {
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * ctx.canvas.width;
+      const y = Math.random() * ctx.canvas.height;
+      const size = Math.random() * 2.5 + 0.5;
+      const opacity = Math.random() * 0.6 + 0.2;
+
+      // Select color based on probabilities
+      let colorIndex = 0;
+      const rand = Math.random();
+      let cumulative = 0;
+      for (let j = 0; j < probabilities.length; j++) {
+        cumulative += probabilities[j];
+        if (rand <= cumulative) {
+          colorIndex = j;
+          break;
+        }
+      }
+
+      // Replace OPACITY placeholder with actual opacity
+      const color = colorTemplates[colorIndex].replace('OPACITY', opacity.toString());
+      ctx.fillStyle = color;
+
+      // Star-like sparkle
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(Math.random() * Math.PI);
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size/3, -size/3);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size/3, size/3);
+      ctx.lineTo(0, size);
+      ctx.lineTo(-size/3, size/3);
+      ctx.lineTo(-size, 0);
+      ctx.lineTo(-size/3, -size/3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Tropical style decoration methods
+  drawTropicalBorder(ctx) {
+    const canvas = ctx.canvas;
+    ctx.save();
+
+    // Collect all available palm trees and tropical foliage
+    const palmTrees = [
+      this.professionalAssets.tropical_palm_tree,
+      this.professionalAssets.tropical_palm_tree_2,
+      this.professionalAssets.tropical_palm_tree_4
+    ].filter(tree => tree);
+
+    console.log('Tropical palm trees loaded:', palmTrees.length);
+
+    const foliage = [
+      this.professionalAssets.tropical_monstera
+    ].filter(f => f);
+
+    // Define positions for palm trees and foliage (mix them up)
+    const palmPositions = [
+      { x: 0, y: canvas.height - 220, type: 'palm', flip: false, size: 220 },
+      { x: canvas.width - 120, y: canvas.height - 210, type: 'palm', flip: true, size: 210 },
+      { x: 120, y: canvas.height - 180, type: 'palm', flip: false, size: 180 },
+      { x: canvas.width - 250, y: canvas.height - 190, type: 'palm', flip: false, size: 190 }
+    ];
+
+    const foliagePositions = [
+      { x: 80, y: 100, rotation: 0.3, flip: false },
+      { x: canvas.width - 80, y: 100, rotation: -0.3, flip: true },
+      { x: canvas.width / 2 - 100, y: 120, rotation: 0.2, flip: false },
+      { x: canvas.width / 2 + 100, y: 110, rotation: -0.2, flip: true }
+    ];
+
+    // Draw palm trees
+    if (palmTrees.length > 0) {
+      palmPositions.forEach(pos => {
+        // Randomly select a palm tree
+        const palm = palmTrees[Math.floor(Math.random() * palmTrees.length)];
+        const palmSize = pos.size + Math.random() * 30;
+        const scale = palmSize / palm.height;
+        const scaledWidth = palm.width * scale;
+
+        ctx.save();
+        ctx.globalAlpha = 0.8 + Math.random() * 0.15;
+
+        if (pos.flip) {
+          ctx.translate(pos.x, pos.y);
+          ctx.scale(-1, 1);
+          ctx.drawImage(palm, -scaledWidth, 0, scaledWidth, palmSize);
+        } else {
+          ctx.drawImage(palm, pos.x, pos.y, scaledWidth, palmSize);
+        }
+
+        ctx.restore();
+      });
+    }
+
+    // Add monstera leaves for tropical layering
+    if (foliage.length > 0) {
+      foliagePositions.forEach(pos => {
+        const leaf = foliage[Math.floor(Math.random() * foliage.length)];
+        const size = 70 + Math.random() * 30;
+        const scale = size / leaf.height;
+        const scaledWidth = leaf.width * scale;
+
+        ctx.save();
+        ctx.globalAlpha = 0.65 + Math.random() * 0.2;
+        ctx.translate(pos.x, pos.y);
+        if (pos.flip) ctx.scale(-1, 1);
+        ctx.rotate(pos.rotation + (Math.random() - 0.5) * 0.2);
+        ctx.drawImage(
+          leaf,
+          -scaledWidth / 2,
+          -size / 2,
+          scaledWidth,
+          size
+        );
+        ctx.restore();
+      });
+    }
+
+    ctx.restore();
+  }
+
+  drawTropicalFlowers(ctx) {
+    const canvas = ctx.canvas;
+    ctx.save();
+
+    // Collect all available tropical decorations
+    const flowers = [
+      this.professionalAssets.tropical_hibiscus,
+      this.professionalAssets.tropical_plumeria
+    ].filter(f => f);
+
+    const ornaments = [
+      this.professionalAssets.tropical_coconut,
+      this.professionalAssets.tropical_shell,
+      this.professionalAssets.tropical_pineapple
+    ].filter(o => o);
+
+    // Create decorations with randomized positions
+    const decorationCount = 7 + Math.floor(Math.random() * 3); // 7-9 decorations (reduced from 8-11)
+
+    for (let i = 0; i < decorationCount; i++) {
+      // Randomly choose flower or ornament (75% flowers, 25% ornaments)
+      const isFlower = Math.random() > 0.25;
+      let decoration;
+      let size;
+      let glowColor;
+      let opacity;
+
+      if (isFlower && flowers.length > 0) {
+        // Use random flower
+        decoration = flowers[Math.floor(Math.random() * flowers.length)];
+        size = 45 + Math.random() * 30;
+        glowColor = 'rgba(255, 102, 102, 0.4)';
+        opacity = 0.75 + Math.random() * 0.25; // 75-100% opacity for flowers
+      } else if (ornaments.length > 0) {
+        // Use random ornament (coconuts, shells, pineapples)
+        decoration = ornaments[Math.floor(Math.random() * ornaments.length)];
+        size = 50 + Math.random() * 25; // Slightly smaller (was 55-90)
+        glowColor = 'rgba(255, 200, 100, 0.2)'; // Less glow
+        opacity = 0.4 + Math.random() * 0.2; // 40-60% opacity for ornaments (more transparent)
+      }
+
+      if (!decoration) continue;
+
+      // Random position with safe margins
+      const margin = 120;
+      const x = margin + Math.random() * (canvas.width - margin * 2);
+      const y = 80 + Math.random() * (canvas.height - 200); // Avoid very top and bottom
+
+      const scale = size / decoration.height;
+      const scaledWidth = decoration.width * scale;
+      const rotation = (Math.random() - 0.5) * 0.8; // Random rotation
+
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+
+      // Add tropical glow
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 12 + Math.random() * 8;
+
+      ctx.drawImage(
+        decoration,
+        -scaledWidth / 2,
+        -size / 2,
+        scaledWidth,
+        size
+      );
+      ctx.restore();
+    }
+
+    ctx.shadowColor = 'transparent';
     ctx.restore();
   }
 

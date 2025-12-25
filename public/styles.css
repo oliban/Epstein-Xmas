@@ -547,15 +547,15 @@ main {
 /* Styles Grid */
 .styles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
 }
 
 .style-card {
   background: #f8f8f8;
   border: 3px solid transparent;
-  border-radius: 15px;
-  padding: 1.5rem;
+  border-radius: 12px;
+  padding: 1rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -574,18 +574,20 @@ main {
 }
 
 .style-icon {
-  font-size: 3rem;
-  margin-bottom: 0.75rem;
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .style-card h3 {
   color: var(--christmas-green);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
 }
 
 .style-card p {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: var(--text-light);
+  line-height: 1.3;
 }
 
 /* Selection Summary */
@@ -750,6 +752,14 @@ main {
   .page-counter {
     min-width: 100px;
     font-size: 1.1rem;
+  }
+}
+
+/* Tablet optimization */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .styles-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
   }
 }
 
@@ -1074,12 +1084,20 @@ footer {
   }
 
   .styles-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
 
   .style-card {
-    padding: 1.25rem;
+    padding: 1rem;
+  }
+
+  .style-card h3 {
+    font-size: 0.95rem;
+  }
+
+  .style-card p {
+    font-size: 0.7rem;
   }
 
   .card-actions {
