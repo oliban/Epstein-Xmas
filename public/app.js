@@ -26,6 +26,10 @@ class ChristmasCardGenerator {
     this.matchedPages = []; // All matching pages from search
     this.currentPageIndex = 0; // Current page being viewed
 
+    // Professional style PNG assets
+    this.professionalAssets = {};
+    this.assetsLoaded = false;
+
     // Notable persons for quick links
     this.quickLinkIds = [
       'jeffrey-epstein', 'ghislaine-maxwell', 'bill-clinton', 'donald-trump',
@@ -41,6 +45,42 @@ class ChristmasCardGenerator {
     await this.loadPersons();
     this.bindEvents();
     this.loadGallery();
+    // Preload professional style assets in background
+    this.loadProfessionalAssets();
+  }
+
+  // Preload professional style PNG assets
+  async loadProfessionalAssets() {
+    if (this.assetsLoaded) return;
+
+    const assetUrls = {
+      garlandHorizontal: '/assets/garland-horizontal.png',
+      garlandHorizontalAlt: '/assets/garland-horizontal-alt.png',
+      bellGold: '/assets/bell-gold.png',
+      bellMedium: '/assets/bell-medium.png',
+      ribbonBanner: '/assets/ribbon-banner.png',
+      ribbonBannerAlt: '/assets/ribbon-banner-alt.png'
+    };
+
+    const loadPromises = Object.entries(assetUrls).map(([key, url]) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          this.professionalAssets[key] = img;
+          console.log(`Loaded professional asset: ${key}`);
+          resolve();
+        };
+        img.onerror = () => {
+          console.warn(`Failed to load professional asset: ${url}`);
+          resolve(); // Don't reject, allow graceful degradation
+        };
+        img.src = url;
+      });
+    });
+
+    await Promise.all(loadPromises);
+    this.assetsLoaded = true;
+    console.log('Professional assets loaded successfully');
   }
 
   // Create falling snow effect
@@ -832,40 +872,118 @@ class ChristmasCardGenerator {
       return;
     }
 
-    // Handle Christmas styles (traditional, modern, funny, elegant, tropical)
+    // Handle Christmas styles (traditional, modern, funny, elegant, tropical, professional)
     const backgrounds = {
       traditional: { gradient: ['#1a472a', '#2d5a3a'], accent: '#c41e3a', overlay: 'rgba(26, 71, 42, 0.35)' },
       modern: { gradient: ['#1a1a2e', '#16213e'], accent: '#e8e8e8', overlay: 'rgba(26, 26, 46, 0.4)' },
       funny: { gradient: ['#ff6b6b', '#feca57'], accent: '#ffffff', overlay: 'rgba(255, 107, 107, 0.3)' },
       elegant: { gradient: ['#2c1810', '#4a2c2a'], accent: '#d4af37', overlay: 'rgba(44, 24, 16, 0.35)' },
-      tropical: { gradient: ['#00b4d8', '#48cae4'], accent: '#ff9f1c', overlay: 'rgba(0, 180, 216, 0.3)' }
+      tropical: { gradient: ['#00b4d8', '#48cae4'], accent: '#ff9f1c', overlay: 'rgba(0, 180, 216, 0.3)' },
+      professional: { gradient: ['#8b0000', '#660000'], accent: '#d4af37', overlay: 'rgba(139, 0, 0, 0.2)', ribbon: '#8b0000', gold: '#ffd700', textColor: '#ffffff' }
     };
 
     const style = backgrounds[this.selectedStyle] || backgrounds.traditional;
 
     // Apply overlay for text readability
-    ctx.fillStyle = style.overlay;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (this.selectedStyle === 'professional') {
+      // Create rich sparkly red gradient background for professional style
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(139, 0, 0, 0.3)');
+      gradient.addColorStop(0.5, 'rgba(165, 0, 0, 0.35)');
+      gradient.addColorStop(1, 'rgba(102, 0, 0, 0.4)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Add sparkle/glitter effect (like reference image)
+      for (let i = 0; i < 150; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const size = Math.random() * 2.5 + 0.5;
+        const opacity = Math.random() * 0.6 + 0.2;
+
+        // Mix of white and gold sparkles
+        const isGold = Math.random() > 0.6;
+        ctx.fillStyle = isGold
+          ? `rgba(255, 215, 0, ${opacity})`
+          : `rgba(255, 255, 255, ${opacity})`;
+
+        // Star-like sparkle
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.random() * Math.PI);
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size/3, -size/3);
+        ctx.lineTo(size, 0);
+        ctx.lineTo(size/3, size/3);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size/3, size/3);
+        ctx.lineTo(-size, 0);
+        ctx.lineTo(-size/3, -size/3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    } else {
+      ctx.fillStyle = style.overlay;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     // Draw decorative elements
     this.drawDecorations(ctx, this.selectedStyle, style.accent);
 
-    // Draw header
-    ctx.fillStyle = style.accent;
-    ctx.font = 'bold 48px "Mountains of Christmas", cursive, serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Merry Christmas!', canvas.width / 2, 80);
+    // Draw text - professional style uses different formatting
+    if (this.selectedStyle === 'professional') {
+      // Header with elegant script font
+      ctx.fillStyle = style.gold;
+      ctx.font = 'bold 64px "Great Vibes", cursive';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 10;
+      ctx.fillText('Merry Christmas!', canvas.width / 2, 100);
+      ctx.shadowColor = 'transparent';
 
-    // Draw person names
-    ctx.fillStyle = '#ffffff';
-    const names = this.getPersonNames();
-    const fontSize = names.length > 40 ? 28 : 36;
-    ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
-    this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 140, canvas.width - 80, fontSize + 8);
+      // Person names in white with festive font
+      ctx.fillStyle = '#ffffff';
+      const names = this.getPersonNames();
+      const fontSize = names.length > 40 ? 28 : 36;
+      ctx.font = `bold ${fontSize}px "Mountains of Christmas", cursive, serif`;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 6;
+      this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 170, canvas.width - 160, fontSize + 6);
+      ctx.shadowColor = 'transparent';
 
-    // Draw greeting text
-    ctx.font = '22px "Inter", sans-serif';
-    this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 100, 30);
+      // Greeting text in gold
+      ctx.fillStyle = '#d4af37'; // Gold
+      ctx.font = '48px "Great Vibes", cursive';
+
+      // Strong shadow for readability
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 200, 56);
+      ctx.shadowColor = 'transparent';
+    } else {
+      // Standard text rendering for other styles
+      // Draw header
+      ctx.fillStyle = style.accent;
+      ctx.font = 'bold 48px "Mountains of Christmas", cursive, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Merry Christmas!', canvas.width / 2, 80);
+
+      // Draw person names
+      ctx.fillStyle = '#ffffff';
+      const names = this.getPersonNames();
+      const fontSize = names.length > 40 ? 28 : 36;
+      ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
+      this.wrapText(ctx, `From: ${names}`, canvas.width / 2, 140, canvas.width - 80, fontSize + 8);
+
+      // Draw greeting text
+      ctx.font = '22px "Inter", sans-serif';
+      this.wrapText(ctx, greeting, canvas.width / 2, 480, canvas.width - 100, 30);
+    }
 
     document.getElementById('greeting-input').value = greeting;
   }
@@ -921,6 +1039,14 @@ class ChristmasCardGenerator {
         ctx.fillText('🌺', 150, 450);
         ctx.fillText('🌺', 650, 450);
         break;
+      case 'professional':
+        // Draw garland borders
+        this.drawProfessionalBorder(ctx);
+        // Draw corner bells
+        this.drawProfessionalBells(ctx);
+        // Draw festive snowflakes
+        this.drawFestiveSnowflakes(ctx);
+        break;
     }
   }
 
@@ -975,6 +1101,438 @@ class ChristmasCardGenerator {
     ctx.quadraticCurveTo(30, 0, 30, 30);
     ctx.quadraticCurveTo(30, 0, 60, 0);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  // Professional style decoration methods
+  drawProfessionalBorder(ctx) {
+    if (!this.professionalAssets.garlandHorizontal) {
+      console.warn('Professional garland asset not loaded');
+      return;
+    }
+
+    // Randomly choose between garland styles
+    const useAltGarland = Math.random() > 0.5;
+    const garland = useAltGarland && this.professionalAssets.garlandHorizontalAlt
+      ? this.professionalAssets.garlandHorizontalAlt
+      : this.professionalAssets.garlandHorizontal;
+
+    const canvas = ctx.canvas;
+
+    // Calculate target height for garland (smaller to keep on outer edges)
+    const targetHeight = 80; // Fixed pixel height for garland
+    const scale = targetHeight / garland.height;
+    const scaledWidth = garland.width * scale;
+
+    // Draw top garland - tiled/repeated across width to maintain aspect ratio
+    ctx.save();
+    const repetitions = Math.ceil(canvas.width / scaledWidth);
+    for (let i = 0; i < repetitions; i++) {
+      ctx.drawImage(
+        garland,
+        0, 0,
+        garland.width, garland.height,
+        i * scaledWidth, 0,
+        scaledWidth, targetHeight
+      );
+    }
+    ctx.restore();
+
+    // Draw bottom garland (flipped vertically) - tiled across width
+    ctx.save();
+    ctx.translate(0, canvas.height);
+    ctx.scale(1, -1);
+    for (let i = 0; i < repetitions; i++) {
+      ctx.drawImage(
+        garland,
+        0, 0,
+        garland.width, garland.height,
+        i * scaledWidth, 0,
+        scaledWidth, targetHeight
+      );
+    }
+    ctx.restore();
+  }
+
+  drawGarlandSection(ctx, x1, y1, x2, y2, greenColor, berryColor, ribbonColor) {
+    ctx.save();
+
+    const length = x2 - x1;
+    const steps = 20;
+    const amplitude = 15;
+
+    // Draw multiple layers for fuller, denser garland
+    for (let layer = 0; layer < 3; layer++) {
+      ctx.strokeStyle = layer === 0 ? '#0d4d1f' : (layer === 1 ? greenColor : '#1f6b33');
+      ctx.lineWidth = 35 - layer * 8;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.7 + layer * 0.15;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const x = x1 + length * t;
+        const y = y1 + Math.sin(t * Math.PI * 4 + layer) * amplitude + Math.cos(t * Math.PI * 7) * 8;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+
+    // Add MANY holly berries in clusters (like reference image)
+    ctx.fillStyle = berryColor;
+    const berryCount = 35; // Much more berries
+    for (let i = 0; i < berryCount; i++) {
+      const t = Math.random();
+      const x = x1 + length * t + (Math.random() * 25 - 12);
+      const y = y1 + Math.sin(t * Math.PI * 4) * amplitude + (Math.random() * 30 - 15);
+      const size = Math.random() * 3 + 4;
+
+      // Add shadow for depth
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Add highlight
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = 'rgba(255, 150, 150, 0.4)';
+      ctx.beginPath();
+      ctx.arc(x - size/3, y - size/3, size/3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = berryColor;
+    }
+
+    // Add golden ornament balls
+    for (let i = 0; i < 8; i++) {
+      const t = i / 8 + 0.05;
+      const x = x1 + length * t;
+      const y = y1 + Math.sin(t * Math.PI * 4) * amplitude;
+
+      // Gold ball
+      const gradient = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, 8);
+      gradient.addColorStop(0, '#ffd700');
+      gradient.addColorStop(1, '#b8860b');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Add ribbon bows
+    ctx.fillStyle = '#c41e3a';
+    for (let i = 0; i < 6; i++) {
+      const x = x1 + length * (i / 6 + 0.08);
+      this.drawSmallBow(ctx, x, y1 + 5, 15);
+    }
+
+    ctx.restore();
+  }
+
+  drawVerticalGarland(ctx, x, y1, height, greenColor, berryColor) {
+    ctx.save();
+
+    const steps = 25;
+
+    // Draw multiple layers for fuller vertical garland
+    for (let layer = 0; layer < 3; layer++) {
+      ctx.strokeStyle = layer === 0 ? '#0d4d1f' : (layer === 1 ? greenColor : '#1f6b33');
+      ctx.lineWidth = 30 - layer * 7;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.7 + layer * 0.15;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y1);
+      for (let i = 0; i <= steps; i++) {
+        const y = y1 + (height * i / steps);
+        const xOffset = Math.sin(i * 0.6 + layer) * 10 + Math.cos(i * 0.3) * 5;
+        ctx.lineTo(x + xOffset, y);
+      }
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+
+    // Add many berries along the vertical
+    ctx.fillStyle = berryColor;
+    for (let i = 0; i < 20; i++) {
+      const y = y1 + (height * Math.random());
+      const xOffset = Math.sin((i / 20) * Math.PI * 5) * 10;
+      const size = Math.random() * 3 + 3;
+
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.arc(x + xOffset + (Math.random() * 12 - 6), y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowColor = 'transparent';
+
+    ctx.restore();
+  }
+
+  drawSmallBow(ctx, x, y, size) {
+    // Simple bow shape (two loops)
+    ctx.beginPath();
+    ctx.arc(x - size/2, y, size/2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + size/2, y, size/2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Center knot
+    ctx.beginPath();
+    ctx.arc(x, y, size/3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawProfessionalBells(ctx) {
+    if (!this.professionalAssets.bellGold) {
+      console.warn('Professional bell asset not loaded');
+      return;
+    }
+
+    // 80% chance to show bells at all
+    if (Math.random() > 0.8) {
+      return;
+    }
+
+    ctx.save();
+
+    // Randomly choose between bell styles
+    const useAltBell = Math.random() > 0.5;
+    const bell = useAltBell && this.professionalAssets.bellMedium
+      ? this.professionalAssets.bellMedium
+      : this.professionalAssets.bellGold;
+
+    // Random bell size variation (60-90 pixels) - smaller to stay on edges
+    const bellSize = 60 + Math.random() * 30;
+
+    // Calculate scaling
+    const scale = bellSize / bell.height;
+    const bellWidth = bell.width * scale;
+
+    // Position bells very close to corners with minimal random variation
+    const leftX = 30 + Math.random() * 15;
+    const leftY = 10 + Math.random() * 15;
+
+    // Position right bell very close to corner
+    const canvas = ctx.canvas;
+    const rightX = canvas.width - 30 - Math.random() * 15;
+    const rightY = 10 + Math.random() * 15;
+
+    // Draw bell in top-left corner
+    ctx.drawImage(
+      bell,
+      leftX - bellWidth/2, leftY,
+      bellWidth, bellSize
+    );
+
+    // Draw bell in top-right corner
+    ctx.drawImage(
+      bell,
+      rightX - bellWidth/2, rightY,
+      bellWidth, bellSize
+    );
+
+    // Optional: Add glow effect with random intensity
+    const glowIntensity = 0.1 + Math.random() * 0.2;
+    ctx.shadowColor = '#ffd700';
+    ctx.shadowBlur = 20 + Math.random() * 10;
+    ctx.globalAlpha = glowIntensity;
+    // Redraw for glow
+    ctx.drawImage(bell, leftX - bellWidth/2, leftY, bellWidth, bellSize);
+    ctx.drawImage(bell, rightX - bellWidth/2, rightY, bellWidth, bellSize);
+    ctx.shadowColor = 'transparent';
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+  }
+
+  drawBell(ctx, x, y, size) {
+    ctx.save();
+
+    // Create metallic gold gradient for bell
+    const bellGradient = ctx.createRadialGradient(x - size/3, y + size/2, size/4, x, y + size/2, size);
+    bellGradient.addColorStop(0, '#ffd700');
+    bellGradient.addColorStop(0.5, '#daa520');
+    bellGradient.addColorStop(1, '#b8860b');
+
+    // Bell shadow for depth
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 8;
+
+    // Bell body (more realistic curved shape)
+    ctx.fillStyle = bellGradient;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x - size/2, y + size/4, x - size/2.5, y + size/1.5);
+    ctx.quadraticCurveTo(x - size/3, y + size, x, y + size);
+    ctx.quadraticCurveTo(x + size/3, y + size, x + size/2.5, y + size/1.5);
+    ctx.quadraticCurveTo(x + size/2, y + size/4, x, y);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';
+
+    // Bell rim (bottom edge)
+    ctx.strokeStyle = '#8b6914';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x - size/3, y + size);
+    ctx.lineTo(x + size/3, y + size);
+    ctx.stroke();
+
+    // Bell top (crown)
+    const crownGradient = ctx.createLinearGradient(x, y - size/3, x, y);
+    crownGradient.addColorStop(0, '#ffd700');
+    crownGradient.addColorStop(1, '#daa520');
+    ctx.fillStyle = crownGradient;
+    ctx.fillRect(x - size/5, y - size/3, size/2.5, size/3);
+
+    // Hanging loop
+    ctx.strokeStyle = '#daa520';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(x, y - size/2.5, size/8, 0, Math.PI, true);
+    ctx.stroke();
+
+    // Bell clapper
+    ctx.fillStyle = '#654321';
+    ctx.beginPath();
+    ctx.moveTo(x, y + size/3);
+    ctx.lineTo(x - size/10, y + size * 0.8);
+    ctx.lineTo(x + size/10, y + size * 0.8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y + size * 0.85, size/7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bright highlight for shine
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.ellipse(x - size/4, y + size/3, size/6, size/4, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Glow effect
+    ctx.shadowColor = '#ffd700';
+    ctx.shadowBlur = 25;
+    ctx.globalAlpha = 0.3;
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  drawFestiveSnowflakes(ctx) {
+    ctx.save();
+
+    // Draw MANY realistic snowflakes (like reference image)
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * 800;
+      const y = Math.random() * 600;
+      const size = Math.random() * 12 + 4;
+      const opacity = Math.random() * 0.7 + 0.3;
+      const rotation = Math.random() * Math.PI * 2;
+
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+
+      // Draw detailed 6-armed snowflake
+      for (let arm = 0; arm < 6; arm++) {
+        ctx.save();
+        ctx.rotate((arm * Math.PI) / 3);
+
+        // Main arm
+        ctx.fillRect(-1, 0, 2, size);
+
+        // Side branches
+        ctx.save();
+        ctx.translate(0, size * 0.3);
+        ctx.rotate(Math.PI / 6);
+        ctx.fillRect(-0.8, 0, 1.6, size * 0.4);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(0, size * 0.3);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillRect(-0.8, 0, 1.6, size * 0.4);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(0, size * 0.7);
+        ctx.rotate(Math.PI / 6);
+        ctx.fillRect(-0.8, 0, 1.6, size * 0.3);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(0, size * 0.7);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillRect(-0.8, 0, 1.6, size * 0.3);
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      // Center hexagon
+      ctx.beginPath();
+      for (let j = 0; j < 6; j++) {
+        const angle = (j * Math.PI) / 3;
+        const r = size / 4;
+        if (j === 0) {
+          ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+        } else {
+          ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  drawRibbonBanner(ctx, x, y, width) {
+    if (!this.professionalAssets.ribbonBanner) {
+      console.warn('Ribbon banner asset not loaded');
+      return;
+    }
+
+    ctx.save();
+
+    // Randomly choose between ribbon banner styles
+    const useAltBanner = Math.random() > 0.5;
+    const banner = useAltBanner && this.professionalAssets.ribbonBannerAlt
+      ? this.professionalAssets.ribbonBannerAlt
+      : this.professionalAssets.ribbonBanner;
+
+    // Target height for banner
+    const targetHeight = 120;
+
+    // Calculate proportional width to maintain aspect ratio
+    const scale = targetHeight / banner.height;
+    const scaledWidth = banner.width * scale;
+
+    // Draw banner centered at x, y
+    ctx.drawImage(
+      banner,
+      0, 0,
+      banner.width, banner.height,
+      x - scaledWidth/2, y - targetHeight/2,
+      scaledWidth, targetHeight
+    );
+
     ctx.restore();
   }
 
